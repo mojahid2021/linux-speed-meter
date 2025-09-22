@@ -30,4 +30,5 @@ target_link_libraries(${PROJECT_NAME} ${GTK3_LIBRARIES} ${APPINDICATOR_LIBRARIES
 
 # Add compile options
 target_compile_options(${PROJECT_NAME} PRIVATE ${GTK3_CFLAGS_OTHER})
+target_compile_options(${PROJECT_NAME} PRIVATE -Wno-unused-result)
 target_compile_options(${PROJECT_NAME} PRIVATE ${APPINDICATOR_CFLAGS_OTHER})

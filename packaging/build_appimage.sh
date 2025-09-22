@@ -12,6 +12,7 @@ cd "$PROJECT_ROOT"
 echo "Building Linux Speed Meter AppImage..."
 
 # Create build directory
+rm -rf build
 mkdir -p build
 cd build
 

@@ -4,11 +4,20 @@ Linux Speed Meter is a cross-platform application designed to monitor and displa
 
 ## Features
 
-- Real-time monitoring of internet speeds
-- System tray icon with tooltip displaying current speeds
-- Small window option for detailed speed display
-- Cross-platform compatibility (Linux and Windows)
-- Minimal resource usage
+- **Real-time monitoring** of internet speeds with live updates
+- **System tray integration** with tooltip displaying current speeds
+- **Comprehensive Dashboard** with detailed usage statistics:
+  - Current download/upload speeds
+  - Session time and total data transferred
+  - Average speeds calculation
+  - Network interface information
+  - Peak speed tracking
+  - Interactive charts and graphs (Qt version)
+  - Data usage progress indicators
+- **Cross-platform compatibility** (Linux GTK and Windows Qt)
+- **Minimal resource usage** with efficient monitoring
+- **Auto-start functionality** on system boot
+- **Multi-tab interface** (Qt version) with Overview, Statistics, Charts, and Settings
 
 ## Installation
 
@@ -112,6 +121,24 @@ sudo pacman -S base-devel cmake gtk3 libappindicator-gtk3
    ./LinuxSpeedMeter
    ```
 
+### Cleanup Build Artifacts
+
+To clean up build artifacts, temporary files, and packaging outputs:
+
+```bash
+./cleanup.sh
+```
+
+This script safely removes:
+
+- Build directories (`build/`, `build-qt/`, etc.)
+- CMake cache files and build artifacts
+- Packaging outputs in `dist/`
+- Temporary files and backups
+- Empty directories
+
+**Note:** The cleanup script automatically handles permission issues and will use `sudo` when necessary to remove files owned by root.
+
 ## Windows Build Instructions
 
 For Windows builds, see [README-Windows.md](README-Windows.md) for detailed instructions.
@@ -179,9 +206,158 @@ The app automatically creates an autostart entry (`~/.config/autostart/speed-met
 
 ## Usage
 
-- To run the application, execute the compiled binary located in the `build` directory.
-- The application will start in the system tray, displaying the current upload and download speeds.
-- You can click on the tray icon to view more details or access settings.
+### System Tray Operation
+- The application starts in the system tray, displaying current upload and download speeds
+- Right-click the tray icon to access the menu
+
+### Dashboard Access
+- **GTK Version (Linux)**: Select "Show Dashboard" from the tray menu
+- **Qt Version (Windows/Cross-platform)**: Select "Show Dashboard" from the tray menu
+
+### Dashboard Features
+
+#### Overview Tab (Qt Version)
+- **Current Speeds**: Real-time download and upload speeds with color coding
+- **Session Information**: Session duration, total data transferred, average speeds
+- **Network Interface**: Interface name, IP address, connection status with visual indicators
+
+#### Statistics Tab (Qt Version)
+- **Detailed Statistics**: Peak speeds, total downloaded/uploaded data
+- **Usage Summary**: Progress bars showing data usage patterns
+- **Performance Metrics**: Historical peak tracking
+
+#### Charts Tab (Qt Version)
+- **Speed Over Time**: Interactive line chart showing speed history (last 60 seconds)
+- **Data Usage Visualization**: Total data transfer breakdown
+
+#### Settings Tab (Qt Version)
+- **Auto-start**: Enable/disable automatic startup on system boot
+- **Stay on Top**: Keep dashboard window always visible
+- **Reset Statistics**: Clear all session data and charts
+
+### GTK Dashboard Features (Linux)
+- **Current Speeds**: Real-time speed monitoring
+- **Session Statistics**: Time, total data, average speeds
+- **Network Info**: Interface details and connection status
+- **Reset Function**: Clear statistics with reset button
+
+## Auto-Startup Configuration
+
+Linux Speed Meter supports automatic startup on system boot across various Linux distributions and desktop environments. The application uses multiple fallback methods to ensure compatibility:
+
+### Supported Methods
+
+1. **XDG Autostart** (Most desktop environments)
+   - Creates: `~/.config/autostart/linux-speed-meter.desktop`
+   - Compatible with: GNOME, KDE, XFCE, LXDE, MATE, Cinnamon, Unity
+
+2. **Systemd User Service** (Modern Linux systems)
+   - Creates: `~/.config/systemd/user/linux-speed-meter.service`
+   - Enables automatic restart on failure
+   - Compatible with: systemd-based distributions (Ubuntu 16.04+, Fedora, Arch, etc.)
+
+3. **Cron Job** (Fallback for older systems)
+   - Creates: `~/.crontab_speed_meter`
+   - Uses `@reboot` directive for startup
+   - Compatible with: All systems with cron installed
+
+4. **Desktop-Specific Configuration**
+   - KDE: `~/.kde/Autostart/linux-speed-meter.desktop`
+   - GNOME/XFCE/LXDE/MATE/Cinnamon: Uses XDG autostart
+
+### Enabling Auto-Startup
+
+#### GTK Version (Linux)
+
+Auto-startup is automatically configured when the application starts. The system will:
+
+1. Detect your desktop environment
+2. Create appropriate autostart entries
+3. Enable systemd services where available
+
+#### Qt Version (Cross-platform)
+
+1. Open the dashboard
+2. Go to the Settings tab
+3. Check "Enable Auto-start on Boot"
+4. The application will configure auto-startup for your platform
+
+### Manual Configuration
+
+If automatic setup fails, you can manually configure auto-startup:
+
+#### XDG Autostart (Manual)
+
+```bash
+mkdir -p ~/.config/autostart
+cat > ~/.config/autostart/linux-speed-meter.desktop << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=Linux Speed Meter
+Comment=Network speed monitoring application
+Exec=linux-speed-meter
+Icon=network-transmit-receive
+Categories=Utility;Network;Monitor;
+StartupNotify=false
+Terminal=false
+X-GNOME-Autostart-enabled=true
+X-KDE-autostart-after=panel
+X-MATE-Autostart-Delay=0
+EOF
+```
+
+#### Systemd Service (Manual)
+
+```bash
+mkdir -p ~/.config/systemd/user
+cat > ~/.config/systemd/user/linux-speed-meter.service << 'EOF'
+[Unit]
+Description=Linux Speed Meter
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/linux-speed-meter
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+EOF
+systemctl --user daemon-reload
+systemctl --user enable linux-speed-meter.service
+```
+
+### Disabling Auto-Startup
+
+#### GTK Version
+
+The application automatically manages auto-startup. To disable:
+
+1. The auto-startup entries will be removed when the application is uninstalled
+2. Or manually remove the files created above
+
+#### Qt Version
+
+1. Open the dashboard
+2. Go to the Settings tab
+3. Uncheck "Enable Auto-start on Boot"
+
+### Troubleshooting
+
+- **Application doesn't start automatically**: Check if the executable path in the desktop files matches your installation
+- **Systemd service fails**: Run `systemctl --user status linux-speed-meter.service` for details
+- **Permission issues**: Ensure the autostart files have execute permissions
+- **Multiple entries**: The application creates multiple entries for compatibility - this is normal
+
+### Keyboard Shortcuts
+
+- **Ctrl+Q**: Quit application (when dashboard is focused)
+- **F5**: Refresh data (Qt version)
+
+### Data Persistence
+
+- Statistics reset when application restarts
+- Settings are preserved between sessions
 
 ## Contributing
 

@@ -7,6 +7,9 @@
 #include <QStandardPaths>
 #include <QDebug>
 #include <QMessageBox>
+#include <QSettings>
+#include <QTextStream>
+#include <QCoreApplication>
 #include <csignal>
 #include <memory>
 
@@ -28,6 +31,61 @@ void signal_handler(int signal) {
     QApplication::quit();
 }
 
+void setupAutoStartup() {
+#ifdef Q_OS_LINUX
+    // For Linux, use the comprehensive auto-startup system
+    setupAutoStartupLinux();
+#elif defined(Q_OS_WIN)
+    // For Windows, use registry-based auto-startup
+    setupAutoStartupWindows();
+#endif
+}
+
+void setupAutoStartupLinux() {
+    // Use the same comprehensive Linux auto-startup system as GTK version
+    // This will be implemented in a shared utility file
+    qDebug() << "Setting up Linux auto-startup...";
+
+    // For now, create a basic XDG autostart entry
+    QString autostartDir = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) + "/.config/autostart";
+    QDir().mkpath(autostartDir);
+
+    QString desktopFile = autostartDir + "/linux-speed-meter.desktop";
+    if (!QFile::exists(desktopFile)) {
+        QFile file(desktopFile);
+        if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            QTextStream out(&file);
+            out << "[Desktop Entry]\n"
+                   "Type=Application\n"
+                   "Name=Linux Speed Meter\n"
+                   "Comment=Network speed monitoring application\n"
+                   "Exec=linux-speed-meter\n"
+                   "Icon=network-transmit-receive\n"
+                   "Categories=Utility;Network;Monitor;\n"
+                   "StartupNotify=false\n"
+                   "Terminal=false\n"
+                   "X-GNOME-Autostart-enabled=true\n"
+                   "X-KDE-autostart-after=panel\n"
+                   "X-MATE-Autostart-Delay=0\n";
+            file.close();
+            qDebug() << "Created XDG autostart entry:" << desktopFile;
+        }
+    }
+}
+
+void setupAutoStartupWindows() {
+    // Windows registry-based auto-startup
+    qDebug() << "Setting up Windows auto-startup...";
+
+#ifdef Q_OS_WIN
+    QSettings settings("HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+                      QSettings::NativeFormat);
+    QString appPath = QCoreApplication::applicationFilePath();
+    settings.setValue("LinuxSpeedMeter", appPath.replace('/', '\\'));
+    qDebug() << "Added to Windows startup:" << appPath;
+#endif
+}
+
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
 
@@ -47,6 +105,9 @@ int main(int argc, char *argv[]) {
             "The application requires a system tray to function properly.");
         return 1;
     }
+
+    // Set up auto-startup
+    setupAutoStartup();
 
     // Create speed monitor
 #ifdef Q_OS_WIN

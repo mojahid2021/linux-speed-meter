@@ -18,7 +18,7 @@ set(CMAKE_AUTORCC ON)
 
 # Source files
 set(SOURCES
-    src/main.cpp
+    src/main_qt.cpp
     src/speed_monitor.cpp
     src/helpers.cpp
     src/mainwindow.cpp

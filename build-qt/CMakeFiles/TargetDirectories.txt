@@ -1,3 +1,0 @@
-/home/mojahid/VS-Code-Projects/speed-meter/linux-speed-meter/build-qt/CMakeFiles/LinuxSpeedMeter.dir
-/home/mojahid/VS-Code-Projects/speed-meter/linux-speed-meter/build-qt/CMakeFiles/edit_cache.dir
-/home/mojahid/VS-Code-Projects/speed-meter/linux-speed-meter/build-qt/CMakeFiles/rebuild_cache.dir

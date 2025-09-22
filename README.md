@@ -49,7 +49,13 @@ chmod +x dist/linux-speed-meter-1.0.0-x86_64.AppImage
 # Download the executable from releases or build from source
 LinuxSpeedMeter.exe
 ```
-
+### Unnecessary commands
+--- IGNORE ---
+--- IGNORE ---
+```
+mkdir -p build && cd build && cmake .. && make
+```
+--- IGNORE ---
 ### Build from Source
 
 # Build & Run Instructions

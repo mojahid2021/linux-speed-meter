@@ -1,18 +1,14 @@
 # Linux Speed Meter
 
-Linux Speed Meter is a cross-desktop application designed to monitor and display internet u4. Build the application:
-   ```bash
-   make
-   ```
-
-5. The executable `LinuxSpeedMeter` will be created in the build directory.download speeds in real-time. It runs as a system tray application or a small window, making it compatible with popular desktop environments such as GNOME, KDE, and XFCE.
+Linux Speed Meter is a cross-platform application designed to monitor and display internet upload and download speeds in real-time. It runs as a system tray application or a small window, making it compatible with popular desktop environments such as GNOME, KDE, XFCE, and Windows.
 
 ## Features
 
 - Real-time monitoring of internet speeds
 - System tray icon with tooltip displaying current speeds
 - Small window option for detailed speed display
-- Cross-desktop compatibility
+- Cross-platform compatibility (Linux and Windows)
+- Minimal resource usage
 
 ## Installation
 
@@ -46,6 +42,12 @@ sudo pacman -U dist/linux-speed-meter-1.0.0-1-x86_64.pkg.tar.zst
 ```bash
 chmod +x dist/linux-speed-meter-1.0.0-x86_64.AppImage
 ./dist/linux-speed-meter-1.0.0-x86_64.AppImage
+```
+
+#### Windows
+```cmd
+# Download the executable from releases or build from source
+LinuxSpeedMeter.exe
 ```
 
 ### Build from Source
@@ -103,6 +105,25 @@ sudo pacman -S base-devel cmake gtk3 libappindicator-gtk3
    ```bash
    ./LinuxSpeedMeter
    ```
+
+## Windows Build Instructions
+
+For Windows builds, see [README-Windows.md](README-Windows.md) for detailed instructions.
+
+### Prerequisites (Windows)
+
+- Visual Studio 2019/2022 with C++ development tools
+- Qt6 (recommended) or Qt5.15+
+- CMake 3.16+
+
+### Quick Windows Build
+
+1. Run the build script:
+   ```cmd
+   build_windows.bat
+   ```
+
+2. Find the executable in `build-windows\Release\LinuxSpeedMeter.exe`
 
 ## Manual Build (Alternative)
 

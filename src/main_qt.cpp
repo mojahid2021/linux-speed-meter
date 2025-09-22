@@ -11,7 +11,7 @@
 #include <memory>
 
 #include "systemtray.h"
-#include "speed_monitor.h"
+#include "speed_monitor_qt.h"
 #include "mainwindow.h"
 
 #ifdef Q_OS_WIN

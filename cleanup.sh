@@ -78,6 +78,8 @@ safe_remove "*.deb"
 safe_remove "*.rpm"
 safe_remove "*.pkg.tar.zst"
 safe_remove "*.AppImage"
+safe_remove "*.exe"  # Windows executables
+safe_remove "*.run"  # Portable bundles
 safe_remove "*.run"
 safe_remove "*.tar.gz"
 safe_remove "*.tar.bz2"

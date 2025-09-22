@@ -3,12 +3,24 @@
 #include <algorithm>
 #include <ctime>
 #include <set>
+
+#ifdef _WIN32
+#include <windows.h>
+#include <shlobj.h>
+#include <direct.h>
+#define mkdir _mkdir
+#else
 #include <sys/stat.h>
 #include <unistd.h>
+#endif
 
 DataManager::DataManager(const std::string& data_dir)
     : monthly_data_limit(0) {
+#ifdef _WIN32
+    data_file_path = expandPath(data_dir) + "\\usage_data.txt";
+#else
     data_file_path = expandPath(data_dir) + "/usage_data.txt";
+#endif
     ensureDataDirectory();
     loadData();
 }
@@ -22,22 +34,45 @@ std::string DataManager::expandPath(const std::string& path) const {
         return path;
     }
 
+#ifdef _WIN32
+    // On Windows, use APPDATA for application data
+    char* appdata = getenv("APPDATA");
+    if (!appdata) {
+        return path; // fallback
+    }
+    return std::string(appdata) + path.substr(1);
+#else
     const char* home = getenv("HOME");
     if (!home) {
         return path;
     }
-
     return std::string(home) + path.substr(1);
+#endif
 }
 
 void DataManager::ensureDataDirectory() {
-    // Create directory if it doesn't exist (simplified version)
+    // Create directory if it doesn't exist
+#ifdef _WIN32
+    std::string dir_path = data_file_path.substr(0, data_file_path.find_last_of('\\'));
+    // Convert forward slashes to backslashes for Windows
+    std::replace(dir_path.begin(), dir_path.end(), '/', '\\');
+#else
     std::string dir_path = data_file_path.substr(0, data_file_path.find_last_of('/'));
+#endif
+
+#ifdef _WIN32
+    if (_access(dir_path.c_str(), 0) != 0) {
+        // Try to create directory
+        std::string cmd = "mkdir \"" + dir_path + "\" 2>nul";
+        system(cmd.c_str());
+    }
+#else
     if (access(dir_path.c_str(), F_OK) != 0) {
         // Try to create directory
         std::string cmd = "mkdir -p '" + dir_path + "'";
         system(cmd.c_str());
     }
+#endif
 }
 
 std::string DataManager::getCurrentDate() const {

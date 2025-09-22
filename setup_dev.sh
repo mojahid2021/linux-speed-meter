@@ -70,6 +70,13 @@ install_dependencies() {
                 tree \
                 wget \
                 curl
+
+            # Windows cross-compilation support
+            print_status "Installing Windows cross-compilation tools..."
+            sudo apt install -y \
+                mingw-w64 \
+                g++-mingw-w64-x86-64-win32 \
+                binutils-mingw-w64
             ;;
 
         "fedora"|"rhel"|"centos"|"almalinux"|"rocky")

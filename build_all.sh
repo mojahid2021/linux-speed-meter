@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Master build script for all Linux distributions
+# Master build script for all Linux distributions and Windows cross-compilation
 
 set -e
 
@@ -13,6 +13,22 @@ PROJECT_ROOT="$(pwd)"
 command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
+
+# Build Windows cross-compilation first
+echo "Building Windows cross-compilation..."
+if command_exists x86_64-w64-mingw32-gcc; then
+    chmod +x build_windows_cross.sh
+    if ./build_windows_cross.sh; then
+        echo "✓ Windows cross-compilation successful (LinuxSpeedMeter.exe created)"
+    else
+        echo "⚠ Windows cross-compilation failed"
+    fi
+else
+    echo "⚠ MinGW-w64 not found, skipping Windows cross-compilation"
+    echo "   Install MinGW-w64: sudo apt install mingw-w64 g++-mingw-w64-x86-64-win32"
+fi
+
+echo
 
 # Build Debian package
 echo "Building Debian (.deb) package..."
@@ -72,11 +88,13 @@ echo
 # Check and display created packages
 if [ -d "dist" ] && [ "$(ls -A dist)" ]; then
     echo "📦 Generated packages in dist/ directory:"
-    ls -la dist/ | grep -E '\.(deb|rpm|pkg\.tar\.zst|AppImage|tar\.gz|run)$' | sed 's/.*dist\//  /'
+    ls -la dist/ | grep -E '\.(deb|rpm|pkg\.tar\.zst|AppImage|tar\.gz|run|exe)$' | sed 's/.*dist\//  /'
     echo
 fi
+
 echo "To install on your system:"
 echo "  Debian/Ubuntu: sudo dpkg -i dist/linux-speed-meter_*.deb"
 echo "  Fedora/RHEL: sudo rpm -i dist/linux-speed-meter-*.rpm"
 echo "  Arch Linux: sudo pacman -U dist/linux-speed-meter-*.pkg.tar.zst"
 echo "  Portable Bundle: chmod +x dist/linux-speed-meter-*.run && ./dist/linux-speed-meter-*.run"
+echo "  Windows: Copy dist/LinuxSpeedMeter.exe to Windows and run directly"

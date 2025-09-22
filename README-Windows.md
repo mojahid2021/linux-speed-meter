@@ -1,34 +1,52 @@
 # Linux Speed Meter - Windows Build Instructions
 
-This document provides instructions for building the Linux Speed Meter application for Windows using Qt.
+This document provides instructions for building the Linux Speed Meter application for Windows using multiple methods.
 
-## Prerequisites
+## Build Methods
 
-1. **Visual Studio 2019 or 2022** with C++ development tools
-2. **Qt6** (recommended) or **Qt5.15+**
-   - Download from: <https://www.qt.io/download>
-   - Install Qt Creator and Qt libraries for MSVC
-3. **CMake 3.16+**
-   - Download from: <https://cmake.org/download/>
+### Method 1: Cross-compile from Linux (Recommended)
 
-## Build Steps
+The easiest way to build Windows executables is to cross-compile from a Linux Ubuntu system.
 
-### Method 1: Using the Build Script (Recommended)
+#### Prerequisites (Linux)
+- Ubuntu 18.04 or later
+- Internet connection for downloading tools
 
-1. Open Command Prompt as Administrator
-2. Navigate to the project directory:
+#### Automated Setup
+```bash
+# Clone the repository
+git clone <repository-url>
+cd linux-speed-meter
 
-   ```cmd
-   cd path\to\linux-speed-meter
-   ```
+# Run development setup (includes MinGW installation)
+chmod +x setup_dev.sh
+./setup_dev.sh
 
-3. Run the build script:
+# Build Windows executable
+chmod +x build_windows_cross.sh
+./build_windows_cross.sh
+```
 
-   ```cmd
-   build_windows.bat
-   ```
+#### Manual Setup (if automated setup fails)
+```bash
+# Install MinGW cross-compilation tools
+sudo apt update
+sudo apt install mingw-w64 g++-mingw-w64-x86-64-win32 binutils-mingw-w64 cmake
 
-### Method 2: Manual Build
+# Build Windows executable
+chmod +x build_windows_cross.sh
+./build_windows_cross.sh
+```
+
+#### What you get:
+- `LinuxSpeedMeter.exe` - Windows console application (2.8 MB)
+- Native Windows speed monitoring
+- Cross-platform data persistence
+- No external dependencies required
+
+### Method 2: Native Windows Build with Qt GUI
+
+For a full GUI application with Qt interface, build natively on Windows.
 
 1. Create a build directory:
 

@@ -2,8 +2,9 @@ cmake_minimum_required(VERSION 3.10)
 
 project(LinuxSpeedMeter)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Find required packages
 find_package(PkgConfig REQUIRED)
@@ -20,6 +21,7 @@ set(SOURCES
     src/window.cpp
     src/speed_monitor.cpp
     src/helpers.cpp
+    src/data_manager.cpp
 )
 
 # Create the executable
@@ -32,3 +34,7 @@ target_link_libraries(${PROJECT_NAME} ${GTK3_LIBRARIES} ${APPINDICATOR_LIBRARIES
 target_compile_options(${PROJECT_NAME} PRIVATE ${GTK3_CFLAGS_OTHER})
 target_compile_options(${PROJECT_NAME} PRIVATE -Wno-unused-result)
 target_compile_options(${PROJECT_NAME} PRIVATE ${APPINDICATOR_CFLAGS_OTHER})
+target_compile_options(${PROJECT_NAME} PRIVATE -Wno-deprecated-declarations)
+
+# Set static linking to avoid GLIBC compatibility issues
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")

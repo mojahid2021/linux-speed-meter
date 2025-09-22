@@ -12,6 +12,7 @@
 #include "../include/tray_icon.h"
 #include "../include/speed_monitor.h"
 #include "../include/window.h"
+#include "../include/data_manager.h"
 
 // Forward declarations for auto-startup functions
 void setup_autostart_linux();
@@ -46,6 +47,9 @@ void signal_handler(int) {
 TrayIcon trayIcon;
 std::unique_ptr<SpeedMeter> speedMeter;
 std::unique_ptr<Window> dashboardWindow;
+std::unique_ptr<DataManager> dataManager;
+
+static int update_counter = 0;
 
 gboolean update_tray(gpointer) {
     if (speedMeter && global_running) {
@@ -55,14 +59,27 @@ gboolean update_tray(gpointer) {
         // Update dashboard window if it exists and is visible
         if (dashboardWindow) {
             dashboardWindow->updateSpeeds(
-                speedMeter->get_total_tx_mb() * 1024 * 1024,  // Convert MB to bytes for upload
-                speedMeter->get_total_rx_mb() * 1024 * 1024,  // Convert MB to bytes for download
-                speedMeter->get_total_tx_mb() * 1024 * 1024,  // Total upload
-                speedMeter->get_total_rx_mb() * 1024 * 1024,  // Total download
+                speedMeter->get_current_upload_speed(),     // Current upload speed in bytes/sec
+                speedMeter->get_current_download_speed(),   // Current download speed in bytes/sec
+                speedMeter->get_total_tx_mb() * 1024 * 1024, // Total upload in bytes
+                speedMeter->get_total_rx_mb() * 1024 * 1024, // Total download in bytes
                 speedMeter->get_iface(),                     // Interface name
                 "",                                          // IP address (not available in GTK version)
                 true                                         // Assume connected if we have stats
             );
+        }
+
+        // Save data every 60 seconds (1 minute)
+        update_counter++;
+        if (update_counter >= 60 && dataManager) {
+            dataManager->updateDailyStats(
+                speedMeter->get_total_rx_mb() * 1024 * 1024, // Convert MB to bytes
+                speedMeter->get_total_tx_mb() * 1024 * 1024, // Convert MB to bytes
+                speedMeter->get_current_download_speed(),
+                speedMeter->get_current_upload_speed(),
+                std::chrono::seconds(update_counter)        // Session time
+            );
+            update_counter = 0; // Reset counter
         }
     }
     return TRUE;
@@ -404,8 +421,9 @@ int main(int argc, char *argv[]) {
 
     try {
         speedMeter = std::make_unique<SpeedMeter>();
+        dataManager = std::make_unique<DataManager>();
     } catch (const std::exception& e) {
-        std::cerr << "Failed to initialize SpeedMeter: " << e.what() << std::endl;
+        std::cerr << "Failed to initialize SpeedMeter or DataManager: " << e.what() << std::endl;
         return 1;
     }
 

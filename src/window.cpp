@@ -20,7 +20,7 @@ void Window::show() {
         // Initialize the GTK window
         window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
         gtk_window_set_title(GTK_WINDOW(window), "Internet Speed Meter - Dashboard");
-        gtk_window_set_default_size(GTK_WINDOW(window), 500, 400);
+        gtk_window_set_default_size(GTK_WINDOW(window), 600, 500);
 
         // Create main vertical box
         GtkWidget* mainVBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
@@ -38,15 +38,22 @@ void Window::show() {
         // Session statistics section
         createSessionStatsSection(mainVBox);
 
+        // Monthly statistics section
+        createMonthlyStatsSection(mainVBox);
+
+        // Data limit section
+        createDataLimitSection(mainVBox);
+
         // Network interface section
         createInterfaceSection(mainVBox);
 
         // Control buttons
         createButtonSection(mainVBox);
 
-        // Connect the close event
-        g_signal_connect(window, "destroy", G_CALLBACK(+[](GtkWidget*, gpointer self) {
+        // Connect the close event - prevent destruction, just hide
+        g_signal_connect(window, "delete-event", G_CALLBACK(+[](GtkWidget*, GdkEvent*, gpointer self) {
             static_cast<Window*>(self)->handleClose();
+            return TRUE; // Prevent window destruction
         }), this);
 
         gtk_widget_show_all(window);
@@ -122,6 +129,53 @@ void Window::createInterfaceSection(GtkWidget* parent) {
     gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(statusLabel), FALSE, FALSE, 2);
 }
 
+void Window::createMonthlyStatsSection(GtkWidget* parent) {
+    GtkWidget* frame = gtk_frame_new("Monthly Statistics");
+    gtk_box_pack_start(GTK_BOX(parent), frame, FALSE, FALSE, 5);
+
+    GtkWidget* vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+    gtk_container_add(GTK_CONTAINER(frame), vbox);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
+
+    // Monthly download
+    monthlyDownloadLabel = GTK_LABEL(gtk_label_new("Monthly Download: 0 MB"));
+    gtk_label_set_xalign(GTK_LABEL(monthlyDownloadLabel), 0.0);
+    gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(monthlyDownloadLabel), FALSE, FALSE, 2);
+
+    // Monthly upload
+    monthlyUploadLabel = GTK_LABEL(gtk_label_new("Monthly Upload: 0 MB"));
+    gtk_label_set_xalign(GTK_LABEL(monthlyUploadLabel), 0.0);
+    gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(monthlyUploadLabel), FALSE, FALSE, 2);
+
+    // Peak speeds this month
+    monthlyPeakDownloadLabel = GTK_LABEL(gtk_label_new("Peak Download: 0 MB/s"));
+    gtk_label_set_xalign(GTK_LABEL(monthlyPeakDownloadLabel), 0.0);
+    gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(monthlyPeakDownloadLabel), FALSE, FALSE, 2);
+
+    monthlyPeakUploadLabel = GTK_LABEL(gtk_label_new("Peak Upload: 0 MB/s"));
+    gtk_label_set_xalign(GTK_LABEL(monthlyPeakUploadLabel), 0.0);
+    gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(monthlyPeakUploadLabel), FALSE, FALSE, 2);
+}
+
+void Window::createDataLimitSection(GtkWidget* parent) {
+    GtkWidget* frame = gtk_frame_new("Data Usage & Limits");
+    gtk_box_pack_start(GTK_BOX(parent), frame, FALSE, FALSE, 5);
+
+    GtkWidget* vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+    gtk_container_add(GTK_CONTAINER(frame), vbox);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
+
+    // Data usage
+    dataUsageLabel = GTK_LABEL(gtk_label_new("Data Used: 0% of limit"));
+    gtk_label_set_xalign(GTK_LABEL(dataUsageLabel), 0.0);
+    gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(dataUsageLabel), FALSE, FALSE, 2);
+
+    // Data limit status
+    dataLimitStatusLabel = GTK_LABEL(gtk_label_new("Status: No limit set"));
+    gtk_label_set_xalign(GTK_LABEL(dataLimitStatusLabel), 0.0);
+    gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(dataLimitStatusLabel), FALSE, FALSE, 2);
+}
+
 void Window::createButtonSection(GtkWidget* parent) {
     GtkWidget* hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
     gtk_box_pack_start(GTK_BOX(parent), hbox, FALSE, FALSE, 5);
@@ -177,6 +231,7 @@ void Window::updateSpeeds(double uploadSpeed, double downloadSpeed, double total
 
     // Update session time and averages
     updateSessionInfo(totalUpload, totalDownload);
+    updateMonthlyStats();
 }
 
 void Window::updateSessionInfo(double totalUpload, double totalDownload) {
@@ -205,6 +260,67 @@ void Window::updateSessionInfo(double totalUpload, double totalDownload) {
         avgText << "Average: " << formatSpeedSimple(avgDownload) << " down, "
                 << formatSpeedSimple(avgUpload) << " up";
         gtk_label_set_text(avgSpeedLabel, avgText.str().c_str());
+    }
+}
+
+void Window::updateMonthlyStats() {
+    if (!dataManager) return;
+
+    MonthlyStats monthly = dataManager->getCurrentMonthStats();
+
+    // Update monthly download
+    if (monthlyDownloadLabel) {
+        std::stringstream text;
+        text << "Monthly Download: " << formatBytes(monthly.total_download_bytes);
+        gtk_label_set_text(monthlyDownloadLabel, text.str().c_str());
+    }
+
+    // Update monthly upload
+    if (monthlyUploadLabel) {
+        std::stringstream text;
+        text << "Monthly Upload: " << formatBytes(monthly.total_upload_bytes);
+        gtk_label_set_text(monthlyUploadLabel, text.str().c_str());
+    }
+
+    // Update peak download
+    if (monthlyPeakDownloadLabel) {
+        std::stringstream text;
+        text << "Peak Download: " << formatSpeedSimple(monthly.peak_download_speed);
+        gtk_label_set_text(monthlyPeakDownloadLabel, text.str().c_str());
+    }
+
+    // Update peak upload
+    if (monthlyPeakUploadLabel) {
+        std::stringstream text;
+        text << "Peak Upload: " << formatSpeedSimple(monthly.peak_upload_speed);
+        gtk_label_set_text(monthlyPeakUploadLabel, text.str().c_str());
+    }
+
+    // Update data usage
+    if (dataUsageLabel) {
+        double usagePercent = dataManager->getDataUsagePercentage();
+        std::stringstream text;
+        text << "Data Used: " << std::fixed << std::setprecision(1) << usagePercent << "% of limit";
+        gtk_label_set_text(dataUsageLabel, text.str().c_str());
+    }
+
+    // Update data limit status
+    if (dataLimitStatusLabel) {
+        uint64_t limit = dataManager->getDataLimit();
+        if (limit > 0) {
+            bool exceeded = dataManager->isDataLimitExceeded();
+            std::stringstream text;
+            text << "Status: " << (exceeded ? "LIMIT EXCEEDED!" : "Within limit");
+            gtk_label_set_text(dataLimitStatusLabel, text.str().c_str());
+
+            // Change color if exceeded
+            if (exceeded) {
+                gtk_label_set_markup(GTK_LABEL(dataLimitStatusLabel),
+                    "<span foreground='red' weight='bold'>Status: LIMIT EXCEEDED!</span>");
+            }
+        } else {
+            gtk_label_set_text(dataLimitStatusLabel, "Status: No limit set");
+        }
     }
 }
 

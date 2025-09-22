@@ -87,7 +87,7 @@ static std::string format_speed(uint64_t bytes) {
 }
 
 SpeedMeter::SpeedMeter()
-    : running(true), total_rx(0), total_tx(0) {
+    : running(true), total_rx(0), total_tx(0), current_download_speed(0), current_upload_speed(0) {
     iface = get_active_interface();
     if (iface.empty()) {
         throw std::runtime_error("No active network interface found.");
@@ -121,6 +121,10 @@ void SpeedMeter::update_stats() {
     total_tx += tx;
     last_stats = curr_stats;
 
+    // Calculate current speeds (bytes per second)
+    current_download_speed = static_cast<double>(rx) / UPDATE_INTERVAL;
+    current_upload_speed = static_cast<double>(tx) / UPDATE_INTERVAL;
+
     label = "↓ " + format_speed(rx) + " | ↑ " + format_speed(tx);
     std::ostringstream tooltip_oss;
     tooltip_oss.precision(2);
@@ -133,5 +137,7 @@ void SpeedMeter::update_stats() {
     // Debug output
     std::cout << "[DEBUG] Interface: " << iface
               << " | RX: " << rx << " bytes | TX: " << tx << " bytes"
+              << " | Current Down: " << current_download_speed << " B/s"
+              << " | Current Up: " << current_upload_speed << " B/s"
               << " | Label: " << label << std::endl;
 }

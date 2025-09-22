@@ -3,6 +3,8 @@
 #include <gtk/gtk.h>
 #include <string>
 #include <chrono>
+#include <memory>
+#include "data_manager.h"
 
 class Window {
 public:
@@ -18,8 +20,11 @@ private:
     void createSpeedSection(GtkWidget* parent);
     void createSessionStatsSection(GtkWidget* parent);
     void createInterfaceSection(GtkWidget* parent);
+    void createMonthlyStatsSection(GtkWidget* parent);
+    void createDataLimitSection(GtkWidget* parent);
     void createButtonSection(GtkWidget* parent);
     void updateSessionInfo(double totalUpload, double totalDownload);
+    void updateMonthlyStats();
     void formatSpeed(std::stringstream& ss, double speed, const std::string& prefix);
     std::string formatSpeedSimple(double speed);
     std::string formatBytes(double bytes);
@@ -34,7 +39,16 @@ private:
     GtkLabel* ipLabel;
     GtkLabel* statusLabel;
 
+    // Monthly statistics labels
+    GtkLabel* monthlyDownloadLabel;
+    GtkLabel* monthlyUploadLabel;
+    GtkLabel* monthlyPeakDownloadLabel;
+    GtkLabel* monthlyPeakUploadLabel;
+    GtkLabel* dataUsageLabel;
+    GtkLabel* dataLimitStatusLabel;
+
     std::chrono::system_clock::time_point startTime;
+    std::shared_ptr<DataManager> dataManager;
 };
 
 #endif // WINDOW_H

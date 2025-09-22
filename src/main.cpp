@@ -50,6 +50,8 @@ std::unique_ptr<Window> dashboardWindow;
 std::unique_ptr<DataManager> dataManager;
 
 static int update_counter = 0;
+static uint64_t prev_total_download_bytes = 0;
+static uint64_t prev_total_upload_bytes = 0;
 
 gboolean update_tray(gpointer) {
     if (speedMeter && global_running) {
@@ -72,12 +74,23 @@ gboolean update_tray(gpointer) {
         // Save data every 60 seconds (1 minute)
         update_counter++;
         if (update_counter >= 60 && dataManager) {
+            uint64_t current_download_bytes = speedMeter->get_total_rx_mb() * 1024 * 1024;
+            uint64_t current_upload_bytes = speedMeter->get_total_tx_mb() * 1024 * 1024;
+            
+            // Calculate incremental bytes since last save
+            uint64_t incremental_download = current_download_bytes - prev_total_download_bytes;
+            uint64_t incremental_upload = current_upload_bytes - prev_total_upload_bytes;
+            
+            // Update previous totals
+            prev_total_download_bytes = current_download_bytes;
+            prev_total_upload_bytes = current_upload_bytes;
+            
             dataManager->updateDailyStats(
-                speedMeter->get_total_rx_mb() * 1024 * 1024, // Convert MB to bytes
-                speedMeter->get_total_tx_mb() * 1024 * 1024, // Convert MB to bytes
+                incremental_download,                          // Incremental download bytes
+                incremental_upload,                            // Incremental upload bytes
                 speedMeter->get_current_download_speed(),
                 speedMeter->get_current_upload_speed(),
-                std::chrono::seconds(update_counter)        // Session time
+                std::chrono::seconds(update_counter)          // Session time
             );
             update_counter = 0; // Reset counter
         }

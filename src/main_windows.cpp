@@ -3,8 +3,8 @@
 #include <thread>
 #include <csignal>
 #include <atomic>
-#include <windows.h>
 #include <winsock2.h>
+#include <windows.h>
 #include <iphlpapi.h>
 #include <memory>
 #include "../include/data_manager.h"
@@ -123,6 +123,8 @@ int main() {
         std::cout << "---------|--------|------------|----------" << std::endl;
 
         int update_counter = 0;
+        uint64_t prev_total_download_bytes = 0;
+        uint64_t prev_total_upload_bytes = 0;
 
         while (running) {
             // Update speed monitor
@@ -142,9 +144,20 @@ int main() {
             // Save data every minute
             update_counter++;
             if (update_counter >= 60) {
+                uint64_t current_download_bytes = total_download * 1024 * 1024;
+                uint64_t current_upload_bytes = total_upload * 1024 * 1024;
+                
+                // Calculate incremental bytes since last save
+                uint64_t incremental_download = current_download_bytes - prev_total_download_bytes;
+                uint64_t incremental_upload = current_upload_bytes - prev_total_upload_bytes;
+                
+                // Update previous totals
+                prev_total_download_bytes = current_download_bytes;
+                prev_total_upload_bytes = current_upload_bytes;
+                
                 dataManager->updateDailyStats(
-                    total_download * 1024 * 1024, // Convert MB to bytes
-                    total_upload * 1024 * 1024,   // Convert MB to bytes
+                    incremental_download,    // Incremental download bytes
+                    incremental_upload,      // Incremental upload bytes
                     download_speed,
                     upload_speed,
                     std::chrono::seconds(update_counter)

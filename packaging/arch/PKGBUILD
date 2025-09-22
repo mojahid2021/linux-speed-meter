@@ -1,0 +1,46 @@
+# Maintainer: Linux Speed Meter Team <info@linuxspeedmeter.com>
+
+pkgname=linux-speed-meter
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Real-time network speed monitor for Linux"
+arch=('x86_64')
+url="https://github.com/linux-speed-meter/linux-speed-meter"
+license=('MIT')
+depends=('gtk3' 'libappindicator-gtk3')
+makedepends=('cmake' 'gcc')
+source=("$pkgname-$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+prepare() {
+    cd "$srcdir"
+    # Extract source if needed
+    if [ -f "$pkgname-$pkgver.tar.gz" ]; then
+        tar -xzf "$pkgname-$pkgver.tar.gz"
+    fi
+}
+
+build() {
+    cd "$srcdir"
+    mkdir -p build
+    cd build
+    cmake .. -DCMAKE_INSTALL_PREFIX=/usr
+    make
+}
+
+package() {
+    cd "$srcdir/build"
+    make DESTDIR="$pkgdir" install
+
+    # Install desktop file
+    install -Dm644 ../packaging/arch/linux-speed-meter.desktop "$pkgdir/usr/share/applications/linux-speed-meter.desktop"
+
+    # Install icon (placeholder)
+    mkdir -p "$pkgdir/usr/share/icons/hicolor/256x256/apps"
+    convert -size 256x256 xc:"#4A90E2" -fill white -pointsize 72 -gravity center -annotate +0+0 "LSM" "$pkgdir/usr/share/icons/hicolor/256x256/apps/linux-speed-meter.png" 2>/dev/null || {
+        touch "$pkgdir/usr/share/icons/hicolor/256x256/apps/linux-speed-meter.png"
+    }
+
+    # Install license
+    install -Dm644 ../LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

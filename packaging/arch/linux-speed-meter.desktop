@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Linux Speed Meter
+Comment=Real-time network speed monitor
+Exec=linux-speed-meter
+Icon=linux-speed-meter
+Categories=Utility;Network;Monitor;
+StartupNotify=false
+Terminal=false

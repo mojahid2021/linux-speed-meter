@@ -1,0 +1,12 @@
+Package: linux-speed-meter
+Version: 1.0.0
+Section: utils
+Priority: optional
+Architecture: amd64
+Depends: libgtk-3-0 (>= 3.24), libappindicator3-1 (>= 12.10), libc6 (>= 2.34), libstdc++6 (>= 11)
+Maintainer: Linux Speed Meter Team <info@linuxspeedmeter.com>
+Description: Real-time network speed monitor for Linux
+ Linux Speed Meter is a cross-desktop application designed to monitor
+ and display internet upload and download speeds in real-time. It runs
+ as a system tray application, making it compatible with popular desktop
+ environments such as GNOME, KDE, and XFCE.

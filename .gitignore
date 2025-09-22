@@ -1,0 +1,28 @@
+# Build directories
+build/
+cmake-build-*/
+
+# Compiled binaries (but keep packages in dist/)
+speed-meter
+LinuxSpeedMeter
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.log
+
+# AppImage/AppDir
+AppDir/
+*.AppImage
+
+# Flatpak
+.flatpak-builder/

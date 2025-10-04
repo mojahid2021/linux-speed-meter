@@ -35,18 +35,20 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history and release notes.
 
 ## Documentation
 
-- **[USER_GUIDE.md](USER_GUIDE.md)** - Complete user guide with tutorials and troubleshooting
-- **[FEATURES.md](FEATURES.md)** - Detailed feature documentation and specifications
+- **[docs/USER_GUIDE.md](docs/USER_GUIDE.md)** - Complete user guide with tutorials and troubleshooting
+- **[docs/FEATURES.md](docs/FEATURES.md)** - Detailed feature documentation and specifications
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history and release notes
 - **[README-Windows.md](README-Windows.md)** - Windows-specific build instructions
+- **[docs/BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md)** - Build and test guide for developers
+- **[docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)** - Contribution guidelines
 
 ## Quick Links
 
 - [Installation](#installation)
 - [Building from Source](#build-with-cmake-recommended)
-- [Usage Guide](USER_GUIDE.md)
-- [Features Overview](FEATURES.md)
-- [Contributing](#contributing)
+- [Usage Guide](docs/USER_GUIDE.md)
+- [Features Overview](docs/FEATURES.md)
+- [Contributing](docs/CONTRIBUTING.md)
 - [Changelog](#changelog)
 
 ## Installation
@@ -414,30 +416,49 @@ This script will:
 linux-speed-meter/
 ├── src/                    # Source code
 │   ├── main.cpp           # Linux GTK application entry point
-│   ├── main_qt.cpp        # Qt application entry point (Windows)
+│   ├── main_qt.cpp        # Qt application entry point (Windows/Linux)
 │   ├── main_windows.cpp   # Windows console application entry point
-│   ├── speed_monitor.cpp  # Network speed monitoring (Linux)
-│   ├── speed_monitor_win.cpp # Network speed monitoring (Windows Qt)
-│   ├── tray_icon.cpp      # System tray integration
+│   ├── speed_monitor.cpp  # Network speed monitoring
+│   ├── speed_monitor_linux.cpp # Linux-specific monitoring
+│   ├── speed_monitor_win.cpp   # Windows-specific monitoring
+│   ├── tray_icon.cpp      # GTK system tray integration
 │   ├── window.cpp         # GTK dashboard window
-│   ├── mainwindow.cpp     # Qt main window (Windows)
-│   ├── systemtray.cpp     # Qt system tray (Windows)
+│   ├── mainwindow.cpp     # Qt main window
+│   ├── systemtray.cpp     # Qt system tray
+│   ├── data_exporter.cpp  # CSV/JSON export functionality
 │   ├── data_manager.cpp   # Data persistence and statistics
 │   └── helpers.cpp        # Utility functions
 ├── include/               # Header files
-├── packaging/            # Packaging scripts for different distributions
-├── build_all.sh         # Master build script for all packages
+│   ├── mainwindow.h
+│   ├── systemtray.h
+│   ├── data_exporter.h
+│   ├── version.h          # Version definitions
+│   └── ...
+├── packaging/             # Package build scripts for different distributions
+├── docs/                  # Documentation
+│   ├── USER_GUIDE.md      # User manual
+│   ├── FEATURES.md        # Feature documentation
+│   ├── BUILD_AND_TEST.md  # Build and test guide
+│   ├── CONTRIBUTING.md    # Contribution guidelines
+│   └── SCREENSHOTS.md     # Visual documentation
+├── build_all.sh           # Master build script for all packages
 ├── build_windows_cross.sh # Windows cross-compilation script
-├── setup_dev.sh         # Development environment setup
-├── cleanup.sh           # Cleanup script
-├── CMakeLists.txt       # CMake build configuration
-├── mingw-toolchain.cmake # MinGW cross-compilation toolchain
-└── resources.qrc        # Qt resources (Windows version)
+├── setup_dev.sh           # Development environment setup
+├── cleanup.sh             # Cleanup script
+├── CMakeLists.txt         # CMake build configuration (Linux GTK)
+├── CMakeLists-Windows.txt # CMake build configuration (Windows Qt)
+├── mingw-toolchain.cmake  # MinGW cross-compilation toolchain
+├── resources.qrc          # Qt resources
+├── VERSION                # Version number file
+├── CHANGELOG.md           # Version history
+└── README.md              # This file
 ```
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a pull request or open an issue for any suggestions or improvements.
+
+See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) for detailed contribution guidelines.
 
 ### Development Guidelines
 
@@ -445,6 +466,24 @@ Contributions are welcome! Please feel free to submit a pull request or open an 
 2. **Cross-platform**: Ensure code works on both Linux and Windows
 3. **Testing**: Test builds on target platforms before submitting
 4. **Documentation**: Update documentation for any new features
+
+### Quick Start for Contributors
+
+```bash
+# Fork and clone
+git clone https://github.com/YOUR-USERNAME/linux-speed-meter.git
+cd linux-speed-meter
+
+# Set up development environment
+./setup_dev.sh
+
+# Create feature branch
+git checkout -b feature/my-feature
+
+# Make changes, test, and submit PR
+```
+
+See [docs/BUILD_AND_TEST.md](docs/BUILD_AND_TEST.md) for detailed build instructions.
 
 ## License
 

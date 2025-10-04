@@ -306,5 +306,5 @@
 
 This documentation is for **Linux Speed Meter v2.0.0**
 
-See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
+See [CHANGELOG.md](../CHANGELOG.md) for detailed version history.
 See [USER_GUIDE.md](USER_GUIDE.md) for usage instructions.

@@ -243,4 +243,4 @@ For issues, feature requests, or contributions:
 
 This guide is for **Linux Speed Meter v2.0.0**
 
-See [CHANGELOG.md](CHANGELOG.md) for version history and updates.
+See [CHANGELOG.md](../CHANGELOG.md) for version history and updates.

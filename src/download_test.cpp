@@ -1,4 +1,5 @@
 #include "../include/download_test.h"
+#include "../include/curl_wrapper.h"
 #include <curl/curl.h>
 #include <iostream>
 #include <chrono>
@@ -117,7 +118,7 @@ double DownloadTest::run(const std::string& url, int parallelConnections,
 }
 
 void DownloadTest::downloadWorker(const std::string& url, int threadId) {
-    CURL* curl = curl_easy_init();
+    CurlHandle curl;
     if (!curl) {
         std::cerr << "Failed to initialize curl for thread " << threadId << std::endl;
         return;
@@ -128,25 +129,25 @@ void DownloadTest::downloadWorker(const std::string& url, int threadId) {
     const int maxConsecutiveErrors = 3;
     
     // Configure curl
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, 
+    curl_easy_setopt(curl.get(), CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, 
         [](void* contents, size_t size, size_t nmemb, void* userp) -> size_t {
             size_t realsize = size * nmemb;
             uint64_t* counter = static_cast<uint64_t*>(userp);
             *counter += realsize;
             return realsize;
         });
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &threadBytes);
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
-    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);  // For speed testing, skip SSL verification
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &threadBytes);
+    curl_easy_setopt(curl.get(), CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT, 30L);
+    curl_easy_setopt(curl.get(), CURLOPT_NOSIGNAL, 1L);
+    curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYPEER, 0L);  // For speed testing, skip SSL verification
+    curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYHOST, 0L);
     
     // Keep downloading while test is running
     while (running_ && consecutiveErrors < maxConsecutiveErrors) {
         threadBytes = 0;
-        CURLcode res = curl_easy_perform(curl);
+        CURLcode res = curl_easy_perform(curl.get());
         
         if (res == CURLE_OK) {
             totalBytes_ += threadBytes;
@@ -166,8 +167,7 @@ void DownloadTest::downloadWorker(const std::string& url, int threadId) {
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
     }
-    
-    curl_easy_cleanup(curl);
+    // RAII wrapper automatically cleans up CURL handle
 }
 
 double DownloadTest::calculateMbps(uint64_t bytes, double seconds) {

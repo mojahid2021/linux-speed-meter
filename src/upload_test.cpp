@@ -1,4 +1,5 @@
 #include "../include/upload_test.h"
+#include "../include/curl_wrapper.h"
 #include <curl/curl.h>
 #include <iostream>
 #include <chrono>
@@ -117,7 +118,7 @@ double UploadTest::run(const std::string& url, int parallelConnections,
 }
 
 void UploadTest::uploadWorker(const std::string& url, int threadId) {
-    CURL* curl = curl_easy_init();
+    CurlHandle curl;
     if (!curl) {
         std::cerr << "Failed to initialize curl for upload thread " << threadId << std::endl;
         return;
@@ -130,24 +131,24 @@ void UploadTest::uploadWorker(const std::string& url, int threadId) {
     const int maxConsecutiveErrors = 3;
     
     // Configure curl for POST upload
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_POST, 1L);
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, uploadData.size());
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, uploadData.data());
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
-    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);  // For speed testing, skip SSL verification
-    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+    curl_easy_setopt(curl.get(), CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl.get(), CURLOPT_POST, 1L);
+    curl_easy_setopt(curl.get(), CURLOPT_POSTFIELDSIZE, uploadData.size());
+    curl_easy_setopt(curl.get(), CURLOPT_POSTFIELDS, uploadData.data());
+    curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT, 30L);
+    curl_easy_setopt(curl.get(), CURLOPT_NOSIGNAL, 1L);
+    curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYPEER, 0L);  // For speed testing, skip SSL verification
+    curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYHOST, 0L);
     
     // Discard response
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, 
+    curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, 
         [](void* contents, size_t size, size_t nmemb, void* userp) -> size_t {
             return size * nmemb;  // Discard all data
         });
     
     // Keep uploading while test is running
     while (running_ && consecutiveErrors < maxConsecutiveErrors) {
-        CURLcode res = curl_easy_perform(curl);
+        CURLcode res = curl_easy_perform(curl.get());
         
         if (res == CURLE_OK) {
             threadBytes += uploadData.size();
@@ -162,8 +163,7 @@ void UploadTest::uploadWorker(const std::string& url, int threadId) {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
     }
-    
-    curl_easy_cleanup(curl);
+    // RAII wrapper automatically cleans up CURL handle
 }
 
 double UploadTest::calculateMbps(uint64_t bytes, double seconds) {

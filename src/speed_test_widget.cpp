@@ -340,12 +340,31 @@ void SpeedTestWidget::runTestAsync(TestRunConfig config) {
     try {
         auto server = pickServer(config);
 
+        // Validate server URLs
+        if (server.downloadUrl.empty() || server.uploadUrl.empty()) {
+            throw std::runtime_error("Invalid server configuration: empty URLs");
+        }
+
         if (bailIfCancelled()) {
             return;
         }
 
         dispatchToUi([](SpeedTestWidget& widget) {
-            widget.updateProgress("Testing latency...", 0.0, 0.0);
+            widget.updateProgress("Testing connectivity...", 0.05, 0.0);
+        });
+
+        // Pre-connectivity check with quick ping
+        PingResults quickCheck = pingTest_->run(server.host, 80, 2);
+        if (quickCheck.successCount == 0) {
+            throw std::runtime_error("Unable to reach the test server (" + server.name + "). Please check your internet connection or select a different server.");
+        }
+
+        if (bailIfCancelled()) {
+            return;
+        }
+
+        dispatchToUi([](SpeedTestWidget& widget) {
+            widget.updateProgress("Testing latency...", 0.1, 0.0);
         });
 
         PingResults pingResults = pingTest_->run(server.host, 80, 5);
@@ -359,7 +378,7 @@ void SpeedTestWidget::runTestAsync(TestRunConfig config) {
         }
 
         dispatchToUi([](SpeedTestWidget& widget) {
-            widget.updateProgress("Testing download speed...", 0.33, 0.0);
+            widget.updateProgress("Testing download speed...", 0.35, 0.0);
         });
 
         double downloadSpeed = downloadTest_->run(server.downloadUrl, config.parallelConnections,
@@ -369,7 +388,7 @@ void SpeedTestWidget::runTestAsync(TestRunConfig config) {
                     return;
                 }
                 auto stageCopy = stage;
-                double adjusted = 0.33 + progress * 0.33;
+                double adjusted = 0.35 + progress * 0.30;
                 dispatchToUi([stageCopy, adjusted, speed](SpeedTestWidget& widget) {
                     widget.updateProgress(stageCopy, adjusted, speed);
                 });
@@ -384,7 +403,7 @@ void SpeedTestWidget::runTestAsync(TestRunConfig config) {
         }
 
         dispatchToUi([](SpeedTestWidget& widget) {
-            widget.updateProgress("Testing upload speed...", 0.66, 0.0);
+            widget.updateProgress("Testing upload speed...", 0.68, 0.0);
         });
 
         double uploadSpeed = uploadTest_->run(server.uploadUrl, config.parallelConnections,
@@ -394,7 +413,7 @@ void SpeedTestWidget::runTestAsync(TestRunConfig config) {
                     return;
                 }
                 auto stageCopy = stage;
-                double adjusted = 0.66 + progress * 0.33;
+                double adjusted = 0.68 + progress * 0.30;
                 dispatchToUi([stageCopy, adjusted, speed](SpeedTestWidget& widget) {
                     widget.updateProgress(stageCopy, adjusted, speed);
                 });
@@ -407,6 +426,10 @@ void SpeedTestWidget::runTestAsync(TestRunConfig config) {
         if (bailIfCancelled()) {
             return;
         }
+
+        dispatchToUi([](SpeedTestWidget& widget) {
+            widget.updateProgress("Finalizing results...", 0.98, 0.0);
+        });
 
         SpeedTestResult result;
         result.downloadSpeedMbps = downloadSpeed;
@@ -558,6 +581,12 @@ void SpeedTestWidget::refreshHistory() {
 }
 
 void SpeedTestWidget::updateProgress(const std::string& stage, double progress, double currentSpeed) {
+    std::lock_guard<std::mutex> lock(uiMutex_);
+    
+    if (!progressBar_ || !statusLabel_) {
+        return;
+    }
+    
     gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressBar_), progress);
     
     std::string statusText = stage;
@@ -568,6 +597,12 @@ void SpeedTestWidget::updateProgress(const std::string& stage, double progress, 
 }
 
 void SpeedTestWidget::updateResults(const SpeedTestResult& result) {
+    std::lock_guard<std::mutex> lock(uiMutex_);
+    
+    if (!downloadLabel_ || !uploadLabel_ || !pingLabel_ || !jitterLabel_ || !statusLabel_) {
+        return;
+    }
+    
     if (result.success) {
         std::string downloadText = "<span size='large' weight='bold' foreground='#2ecc71'>" + 
                                   formatSpeed(result.downloadSpeedMbps) + "</span>";
@@ -598,16 +633,19 @@ void SpeedTestWidget::updateResults(const SpeedTestResult& result) {
 }
 
 void SpeedTestWidget::setTestRunning(bool running) {
+    std::lock_guard<std::mutex> lock(uiMutex_);
+    
     testRunning_ = running;
-    gtk_widget_set_sensitive(startButton_, !running);
-    gtk_widget_set_sensitive(stopButton_, running);
-    gtk_widget_set_sensitive(serverCombo_, !running);
+    
+    if (startButton_) gtk_widget_set_sensitive(startButton_, !running);
+    if (stopButton_) gtk_widget_set_sensitive(stopButton_, running);
+    if (serverCombo_) gtk_widget_set_sensitive(serverCombo_, !running);
     if (durationSpin_) gtk_widget_set_sensitive(durationSpin_, !running);
     if (warmupSpin_) gtk_widget_set_sensitive(warmupSpin_, !running);
     if (connectionSpin_) gtk_widget_set_sensitive(connectionSpin_, !running);
     if (autoSelectCheck_) gtk_widget_set_sensitive(autoSelectCheck_, !running);
     
-    if (!running) {
+    if (!running && progressBar_) {
         gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressBar_), 0.0);
     }
 }

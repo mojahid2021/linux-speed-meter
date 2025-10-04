@@ -1,4 +1,5 @@
 #include "../include/ping_test.h"
+#include "../include/curl_wrapper.h"
 #include <curl/curl.h>
 #include <chrono>
 #include <thread>
@@ -53,29 +54,29 @@ double PingTest::singlePing(const std::string& host, int port) {
 }
 
 double PingTest::httpPing(const std::string& url) {
-    CURL* curl = curl_easy_init();
+    CurlHandle curl;
     if (!curl) {
         return -1.0;
     }
     
     // Configure for HEAD request (minimal data transfer)
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);  // HEAD request
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, timeout_);
-    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+    curl_easy_setopt(curl.get(), CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl.get(), CURLOPT_NOBODY, 1L);  // HEAD request
+    curl_easy_setopt(curl.get(), CURLOPT_FOLLOWLOCATION, 1L);
+    curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT_MS, timeout_);
+    curl_easy_setopt(curl.get(), CURLOPT_NOSIGNAL, 1L);
+    curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYPEER, 0L);  // Skip SSL verification for speed testing
+    curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYHOST, 0L);
     
     // Discard any response
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, 
+    curl_easy_setopt(curl.get(), CURLOPT_WRITEFUNCTION, 
         [](void* contents, size_t size, size_t nmemb, void* userp) -> size_t {
             return size * nmemb;
         });
     
     auto start = std::chrono::high_resolution_clock::now();
-    CURLcode res = curl_easy_perform(curl);
+    CURLcode res = curl_easy_perform(curl.get());
     auto end = std::chrono::high_resolution_clock::now();
-    
-    curl_easy_cleanup(curl);
     
     if (res != CURLE_OK) {
         return -1.0;
@@ -83,6 +84,7 @@ double PingTest::httpPing(const std::string& url) {
     
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
     return duration / 1000.0;  // Convert to milliseconds
+    // RAII wrapper automatically cleans up CURL handle
 }
 
 double PingTest::tcpPing(const std::string& host, int port) {

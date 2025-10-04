@@ -1,10 +1,22 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(LinuxSpeedMeter)
+project(LinuxSpeedMeter VERSION 1.0.0)
 
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Platform detection
+if(WIN32)
+    set(PLATFORM_WINDOWS TRUE)
+    message(STATUS "Building for Windows")
+elseif(APPLE)
+    set(PLATFORM_MACOS TRUE)
+    message(STATUS "Building for macOS")
+elseif(UNIX)
+    set(PLATFORM_LINUX TRUE)
+    message(STATUS "Building for Linux")
+endif()
 
 # Option to build Windows executable
 option(BUILD_WINDOWS_EXE "Build Windows executable using cross-compilation" OFF)
@@ -66,6 +78,11 @@ else()
     target_compile_options(${PROJECT_NAME} PRIVATE -Wno-unused-result)
     target_compile_options(${PROJECT_NAME} PRIVATE ${APPINDICATOR_CFLAGS_OTHER})
     target_compile_options(${PROJECT_NAME} PRIVATE -Wno-deprecated-declarations)
+    
+    # Add optimization flags
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+        target_compile_options(${PROJECT_NAME} PRIVATE -O3 -march=native)
+    endif()
 
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libgcc -static-libstdc++")
 endif()

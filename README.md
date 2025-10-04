@@ -1,6 +1,18 @@
 # Linux Speed Meter
 
+> **🎉 NEW: Critical Stability Update** - Speed test crashes fixed! See [UPGRADE_GUIDE.md](docs/UPGRADE_GUIDE.md) for details.
+
 Linux Speed Meter is a cross-platform application designed to monitor and display internet upload and download speeds in real-time. It runs as a system tray application or a small window, making it compatible with popular desktop environments such as GNOME, KDE, XFCE, and Windows.
+
+## Recent Improvements (Latest Release)
+
+✅ **Speed Test Stability** - Fixed all crash issues in speed test tab  
+✅ **Thread Safety** - Proper synchronization for UI updates  
+✅ **Memory Management** - RAII wrappers prevent memory leaks  
+✅ **Error Handling** - Graceful handling of network errors with retry logic  
+✅ **Build System** - Enhanced cross-platform support and optimization  
+
+For full details, see [docs/SPEED_TEST_FIXES.md](docs/SPEED_TEST_FIXES.md)
 
 ## Version
 
@@ -42,6 +54,8 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history and release notes.
 
 ## Documentation
 
+- **[docs/UPGRADE_GUIDE.md](docs/UPGRADE_GUIDE.md)** - 🆕 Upgrade guide for latest stability fixes
+- **[docs/SPEED_TEST_FIXES.md](docs/SPEED_TEST_FIXES.md)** - 🆕 Technical details of crash fixes
 - **[docs/SPEED_TEST_GUIDE.md](docs/SPEED_TEST_GUIDE.md)** - Complete speed test feature guide
 - **[docs/USER_GUIDE.md](docs/USER_GUIDE.md)** - Complete user guide with tutorials and troubleshooting
 - **[docs/FEATURES.md](docs/FEATURES.md)** - Detailed feature documentation and specifications

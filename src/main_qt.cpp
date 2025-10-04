@@ -16,6 +16,7 @@
 #include "systemtray.h"
 #include "speed_monitor_qt.h"
 #include "mainwindow.h"
+#include "version.h"
 
 #ifdef Q_OS_WIN
 #include "speed_monitor_win.h"
@@ -90,9 +91,9 @@ int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
 
     // Set application properties
-    app.setApplicationName("Linux Speed Meter");
-    app.setApplicationVersion("1.0.0");
-    app.setOrganizationName("LinuxSpeedMeter");
+    app.setApplicationName(APP_NAME);
+    app.setApplicationVersion(APP_VERSION);
+    app.setOrganizationName(APP_ORGANIZATION);
 
     // Install signal handlers
     signal(SIGINT, signal_handler);

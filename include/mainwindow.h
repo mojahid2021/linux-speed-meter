@@ -15,6 +15,12 @@
 #include <QProgressBar>
 #include <QDateTime>
 #include <QtCharts>
+#include <QComboBox>
+#include <QSpinBox>
+
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
 
 class SpeedMonitor;
 
@@ -63,6 +69,15 @@ private:
     // Settings slots
     void toggleStayOnTop(bool stayOnTop);
     void resetStatistics();
+    void onRefreshRateChanged(int value);
+    void onThemeChanged(int index);
+    void showNotification(const QString& title, const QString& message);
+    void exportToCSV();
+    void exportToJSON();
+
+#ifdef Q_OS_WIN
+    void updateWindowsTaskbar();
+#endif
 
     // Core components
     SpeedMonitor* speedMonitor_;
@@ -74,6 +89,9 @@ private:
     int sessionSeconds_;
     double peakDownload_;
     double peakUpload_;
+    
+    // Historical data for export
+    QVector<struct UsageRecord> usageHistory_;
 
     // UI elements
     QWidget* centralWidget_;
@@ -108,6 +126,17 @@ private:
     QCheckBox* autoStartCheckBox_;
     QCheckBox* stayOnTopCheckBox_;
     QPushButton* resetButton_;
+    QSpinBox* refreshRateSpinBox_;
+    QComboBox* themeComboBox_;
+    QCheckBox* notificationsCheckBox_;
+    QPushButton* exportCSVButton_;
+    QPushButton* exportJSONButton_;
+    
+    // System tray for notifications
+    QSystemTrayIcon* trayIcon_;
+    
+    // Dark mode flag
+    bool darkMode_;
 };
 
 #endif // MAINWINDOW_H

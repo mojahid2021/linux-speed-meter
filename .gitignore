@@ -25,4 +25,4 @@ AppDir/
 *.AppImage
 
 # Flatpak
-.flatpak-builder/
+.flatpak-builder/build-test/

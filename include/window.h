@@ -15,6 +15,8 @@ public:
                      const std::string& interface, const std::string& ip, bool connected);
     void handleClose();
     void resetStatistics();
+    void exportToCSV();
+    void exportToJSON();
 
 private:
     void createSpeedSection(GtkWidget* parent);
@@ -49,6 +51,16 @@ private:
 
     std::chrono::system_clock::time_point startTime;
     std::shared_ptr<DataManager> dataManager;
+    
+    // Historical data for export
+    struct UsageData {
+        std::chrono::system_clock::time_point timestamp;
+        double downloadSpeed;
+        double uploadSpeed;
+        double totalDownload;
+        double totalUpload;
+    };
+    std::vector<UsageData> usageHistory;
 };
 
 #endif // WINDOW_H

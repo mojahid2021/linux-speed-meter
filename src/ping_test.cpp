@@ -64,6 +64,8 @@ double PingTest::httpPing(const std::string& url) {
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, timeout_);
     curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);  // Skip SSL verification for speed testing
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
     
     // Discard any response
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, 

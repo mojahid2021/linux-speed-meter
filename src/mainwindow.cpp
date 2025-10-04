@@ -255,6 +255,9 @@ void MainWindow::setupUI() {
 
     // Charts tab
     createChartsTab();
+    
+    // Speed Test tab
+    createSpeedTestTab();
 
     // Settings tab
     createSettingsTab();
@@ -618,3 +621,17 @@ void MainWindow::exportToJSON() {
         }
     }
 }
+
+void MainWindow::createSpeedTestTab() {
+    // This will be implemented when Qt is being built
+    // For now, create a placeholder
+    QWidget* speedTestWidget = new QWidget();
+    QVBoxLayout* layout = new QVBoxLayout(speedTestWidget);
+    
+    QLabel* label = new QLabel("Speed Test feature (requires Qt build with speed_test_widget_qt.cpp)");
+    label->setAlignment(Qt::AlignCenter);
+    layout->addWidget(label);
+    
+    tabWidget_->addTab(speedTestWidget, "Speed Test");
+}
+

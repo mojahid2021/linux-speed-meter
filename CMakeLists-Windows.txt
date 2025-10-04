@@ -11,6 +11,9 @@ if(NOT Qt6_FOUND)
     find_package(Qt5 5.15 COMPONENTS Core Widgets Network REQUIRED)
 endif()
 
+# Find libcurl
+find_package(CURL REQUIRED)
+
 # Enable automatic MOC, UIC and RCC
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
@@ -24,6 +27,11 @@ set(SOURCES
     src/mainwindow.cpp
     src/systemtray.cpp
     src/data_exporter.cpp
+    src/speed_test.cpp
+    src/download_test.cpp
+    src/upload_test.cpp
+    src/ping_test.cpp
+    src/speed_test_widget_qt.cpp
 )
 
 set(HEADERS
@@ -33,6 +41,11 @@ set(HEADERS
     include/systemtray.h
     include/version.h
     include/data_exporter.h
+    include/speed_test.h
+    include/download_test.h
+    include/upload_test.h
+    include/ping_test.h
+    include/speed_test_widget_qt.h
 )
 
 # Platform-specific sources
@@ -56,10 +69,11 @@ target_link_libraries(${PROJECT_NAME}
     Qt::Core
     Qt::Widgets
     Qt::Network
+    ${CURL_LIBRARIES}
 )
 
 # Include directories
-target_include_directories(${PROJECT_NAME} PRIVATE include)
+target_include_directories(${PROJECT_NAME} PRIVATE include ${CURL_INCLUDE_DIRS})
 
 # Platform-specific libraries
 if(WIN32)

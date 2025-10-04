@@ -1,19 +1,26 @@
+#include "speed_monitor_linux.h"
 #include "speed_monitor_qt.h"
 #include <QNetworkInterface>
 #include <QHostAddress>
 #include <QDebug>
 #include <QFile>
 #include <QTextStream>
+#include <QMutexLocker>
+#include <cmath>
 
 SpeedMonitorLinux::SpeedMonitorLinux(QObject* parent)
     : SpeedMonitor(parent)
     , monitorThread_(nullptr)
     , totalDownloaded_(0)
     , totalUploaded_(0)
-    , downloadRate_(0)
-    , uploadRate_(0)
+    , downloadRate_(0.0)
+    , uploadRate_(0.0)
     , prevDownloaded_(0)
     , prevUploaded_(0)
+    , timer_()
+    , firstSample_(true)
+    , smoothedDownload_(0.0)
+    , smoothedUpload_(0.0)
     , connected_(false)
     , running_(false)
 {
@@ -50,11 +57,25 @@ bool SpeedMonitorLinux::initialize() {
 }
 
 void SpeedMonitorLinux::start() {
-    if (running_) {
+    if (running_.load(std::memory_order_acquire)) {
         return;
     }
 
-    running_ = true;
+    {
+        QMutexLocker locker(&dataMutex_);
+        totalDownloaded_.store(0, std::memory_order_relaxed);
+        totalUploaded_.store(0, std::memory_order_relaxed);
+        downloadRate_.store(0.0, std::memory_order_relaxed);
+        uploadRate_.store(0.0, std::memory_order_relaxed);
+        smoothedDownload_ = 0.0;
+        smoothedUpload_ = 0.0;
+        prevDownloaded_ = 0;
+        prevUploaded_ = 0;
+    }
+    firstSample_ = true;
+    timer_.invalidate();
+
+    running_.store(true, std::memory_order_release);
 
     monitorThread_ = QThread::create([this]() {
         monitorNetwork();
@@ -64,11 +85,11 @@ void SpeedMonitorLinux::start() {
 }
 
 void SpeedMonitorLinux::stop() {
-    if (!running_) {
+    if (!running_.load(std::memory_order_acquire)) {
         return;
     }
 
-    running_ = false;
+    running_.store(false, std::memory_order_release);
 
     if (monitorThread_) {
         monitorThread_->wait();
@@ -78,26 +99,77 @@ void SpeedMonitorLinux::stop() {
 }
 
 void SpeedMonitorLinux::monitorNetwork() {
-    while (running_) {
+    constexpr double kSmoothingAlpha = 0.6;
+    constexpr int kPollIntervalMs = 500;
+
+    while (running_.load(std::memory_order_relaxed)) {
         quint64 currentDownloaded = 0;
         quint64 currentUploaded = 0;
 
         if (readNetworkStats(currentDownloaded, currentUploaded)) {
-            // Update totals
-            QMutexLocker locker(&dataMutex_);
-            totalDownloaded_ = currentDownloaded;
-            totalUploaded_ = currentUploaded;
+            if (firstSample_) {
+                {
+                    QMutexLocker locker(&dataMutex_);
+                    totalDownloaded_.store(currentDownloaded, std::memory_order_relaxed);
+                    totalUploaded_.store(currentUploaded, std::memory_order_relaxed);
+                    prevDownloaded_ = currentDownloaded;
+                    prevUploaded_ = currentUploaded;
+                    downloadRate_.store(0.0, std::memory_order_relaxed);
+                    uploadRate_.store(0.0, std::memory_order_relaxed);
+                    smoothedDownload_ = 0.0;
+                    smoothedUpload_ = 0.0;
+                }
+                timer_.start();
+                firstSample_ = false;
+            } else {
+                qint64 elapsedNs = timer_.nsecsElapsed();
+                if (elapsedNs <= 0) {
+                    elapsedNs = static_cast<qint64>(kPollIntervalMs) * 1000000;
+                }
+                timer_.restart();
 
-            // Calculate rates
-            downloadRate_ = currentDownloaded - prevDownloaded_;
-            uploadRate_ = currentUploaded - prevUploaded_;
+                double elapsedSeconds = static_cast<double>(elapsedNs) / 1'000'000'000.0;
+                if (elapsedSeconds <= 1e-6) {
+                    elapsedSeconds = static_cast<double>(kPollIntervalMs) / 1000.0;
+                }
 
-            prevDownloaded_ = currentDownloaded;
-            prevUploaded_ = currentUploaded;
+                quint64 deltaDown = (currentDownloaded >= prevDownloaded_)
+                                         ? (currentDownloaded - prevDownloaded_)
+                                         : 0;
+                quint64 deltaUp = (currentUploaded >= prevUploaded_)
+                                       ? (currentUploaded - prevUploaded_)
+                                       : 0;
+
+                double instantDown = static_cast<double>(deltaDown) / elapsedSeconds;
+                double instantUp = static_cast<double>(deltaUp) / elapsedSeconds;
+
+                double newDownload = kSmoothingAlpha * instantDown +
+                                     (1.0 - kSmoothingAlpha) * smoothedDownload_;
+                double newUpload = kSmoothingAlpha * instantUp +
+                                   (1.0 - kSmoothingAlpha) * smoothedUpload_;
+
+                if (!std::isfinite(newDownload) || newDownload < 0.0) {
+                    newDownload = 0.0;
+                }
+                if (!std::isfinite(newUpload) || newUpload < 0.0) {
+                    newUpload = 0.0;
+                }
+
+                {
+                    QMutexLocker locker(&dataMutex_);
+                    totalDownloaded_.store(currentDownloaded, std::memory_order_relaxed);
+                    totalUploaded_.store(currentUploaded, std::memory_order_relaxed);
+                    smoothedDownload_ = newDownload;
+                    smoothedUpload_ = newUpload;
+                    downloadRate_.store(smoothedDownload_, std::memory_order_relaxed);
+                    uploadRate_.store(smoothedUpload_, std::memory_order_relaxed);
+                    prevDownloaded_ = currentDownloaded;
+                    prevUploaded_ = currentUploaded;
+                }
+            }
         }
 
-        // Sleep for 1 second
-        QThread::sleep(1);
+        QThread::msleep(kPollIntervalMs);
     }
 }
 
@@ -128,16 +200,16 @@ bool SpeedMonitorLinux::readNetworkStats(quint64& rx, quint64& tx) {
 }
 
 QString SpeedMonitorLinux::getLabel() const {
-    QString download = formatSpeed(downloadRate_);
-    QString upload = formatSpeed(uploadRate_);
+    QString download = formatSpeed(downloadRate_.load(std::memory_order_relaxed));
+    QString upload = formatSpeed(uploadRate_.load(std::memory_order_relaxed));
     return QString("↓ %1 ↑ %2").arg(download, upload);
 }
 
 QString SpeedMonitorLinux::getTooltip() const {
-    QString download = formatSpeed(downloadRate_);
-    QString upload = formatSpeed(uploadRate_);
-    QString totalDown = formatBytes(totalDownloaded_);
-    QString totalUp = formatBytes(totalUploaded_);
+    QString download = formatSpeed(downloadRate_.load(std::memory_order_relaxed));
+    QString upload = formatSpeed(uploadRate_.load(std::memory_order_relaxed));
+    QString totalDown = formatBytes(static_cast<double>(totalDownloaded_.load(std::memory_order_relaxed)));
+    QString totalUp = formatBytes(static_cast<double>(totalUploaded_.load(std::memory_order_relaxed)));
 
     return QString("Linux Speed Meter\n"
                    "Download: %1/s (%2 total)\n"
@@ -147,19 +219,19 @@ QString SpeedMonitorLinux::getTooltip() const {
 }
 
 QString SpeedMonitorLinux::getDownloadRate() const {
-    return formatSpeed(downloadRate_) + "/s";
+    return formatSpeed(downloadRate_.load(std::memory_order_relaxed)) + "/s";
 }
 
 QString SpeedMonitorLinux::getUploadRate() const {
-    return formatSpeed(uploadRate_) + "/s";
+    return formatSpeed(uploadRate_.load(std::memory_order_relaxed)) + "/s";
 }
 
 QString SpeedMonitorLinux::getTotalDownloaded() const {
-    return formatBytes(totalDownloaded_);
+    return formatBytes(static_cast<double>(totalDownloaded_.load(std::memory_order_relaxed)));
 }
 
 QString SpeedMonitorLinux::getTotalUploaded() const {
-    return formatBytes(totalUploaded_);
+    return formatBytes(static_cast<double>(totalUploaded_.load(std::memory_order_relaxed)));
 }
 
 QString SpeedMonitorLinux::getInterfaceName() const {
@@ -175,10 +247,14 @@ bool SpeedMonitorLinux::isConnected() const {
 }
 
 bool SpeedMonitorLinux::isActive() const {
-    return (downloadRate_ > 0 || uploadRate_ > 0);
+    return (downloadRate_.load(std::memory_order_relaxed) > 0.0 ||
+            uploadRate_.load(std::memory_order_relaxed) > 0.0);
 }
 
-QString SpeedMonitorLinux::formatBytes(quint64 bytes) const {
+QString SpeedMonitorLinux::formatBytes(double bytes) const {
+    if (bytes < 0.0) {
+        bytes = 0.0;
+    }
     const char* units[] = {"B", "KB", "MB", "GB", "TB"};
     int unitIndex = 0;
     double size = bytes;
@@ -188,9 +264,13 @@ QString SpeedMonitorLinux::formatBytes(quint64 bytes) const {
         unitIndex++;
     }
 
-    return QString("%1 %2").arg(size, 0, 'f', 1).arg(units[unitIndex]);
+    int precision = (unitIndex == 0) ? 0 : (size < 10.0 ? 2 : 1);
+    return QString("%1 %2").arg(size, 0, 'f', precision).arg(units[unitIndex]);
 }
 
-QString SpeedMonitorLinux::formatSpeed(quint64 bytesPerSecond) const {
+QString SpeedMonitorLinux::formatSpeed(double bytesPerSecond) const {
+    if (bytesPerSecond < 0.0) {
+        bytesPerSecond = 0.0;
+    }
     return formatBytes(bytesPerSecond);
 }

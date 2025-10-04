@@ -17,6 +17,10 @@ x86_64-w64-mingw32-g++ \
     ../src/speed_monitor.cpp \
     ../src/helpers.cpp \
     ../src/data_manager.cpp \
+    ../src/speed_test.cpp \
+    ../src/download_test.cpp \
+    ../src/upload_test.cpp \
+    ../src/ping_test.cpp \
     -o LinuxSpeedMeter.exe \
     -std=c++14 \
     -static-libgcc \
@@ -24,6 +28,7 @@ x86_64-w64-mingw32-g++ \
     -mconsole \
     -liphlpapi \
     -lws2_32 \
+    -lcurl \
     -I../include
 
 # Check if build succeeded

@@ -71,29 +71,22 @@ static NetStats get_net_stats(const std::string& iface) {
     return {0, 0};
 }
 
-static std::string format_speed(uint64_t bytes) {
-    std::ostringstream oss;
-    double bits = bytes * 8.0;
-    double kbits = bits / 1024.0;
-    oss << std::fixed;
-    if (kbits < 1024.0) {
-        oss.precision(1);
-        oss << kbits << " Kb/s";
-    } else {
-        oss.precision(2);
-        oss << (kbits / 1024.0) << " Mb/s";
-    }
-    return oss.str();
-}
-
 SpeedMeter::SpeedMeter()
-    : running(true), total_rx(0), total_tx(0), current_download_speed(0), current_upload_speed(0) {
+    : running(true),
+      total_rx(0),
+      total_tx(0),
+      current_download_speed(0.0),
+      current_upload_speed(0.0),
+      smoothed_download_speed_(0.0),
+      smoothed_upload_speed_(0.0),
+      first_sample_(true) {
     iface = get_active_interface();
     if (iface.empty()) {
         throw std::runtime_error("No active network interface found.");
     }
     std::cout << "Monitoring interface: " << iface << std::endl;
     last_stats = get_net_stats(iface);
+    last_update_time_ = std::chrono::steady_clock::now();
     thread = std::thread(&SpeedMeter::update_loop, this);
 }
 
@@ -115,29 +108,84 @@ void SpeedMeter::update_loop() {
 
 void SpeedMeter::update_stats() {
     auto curr_stats = get_net_stats(iface);
+    auto now = std::chrono::steady_clock::now();
+    double elapsed_seconds = std::chrono::duration<double>(now - last_update_time_).count();
+    if (elapsed_seconds <= 0.0) {
+        elapsed_seconds = static_cast<double>(UPDATE_INTERVAL);
+    }
+    last_update_time_ = now;
+
     uint64_t rx = curr_stats.rx_bytes - last_stats.rx_bytes;
     uint64_t tx = curr_stats.tx_bytes - last_stats.tx_bytes;
     total_rx += rx;
     total_tx += tx;
     last_stats = curr_stats;
 
-    // Calculate current speeds (bytes per second)
-    current_download_speed = static_cast<double>(rx) / UPDATE_INTERVAL;
-    current_upload_speed = static_cast<double>(tx) / UPDATE_INTERVAL;
+    // Calculate instantaneous speeds (bytes per second)
+    double instant_download = static_cast<double>(rx) / elapsed_seconds;
+    double instant_upload = static_cast<double>(tx) / elapsed_seconds;
 
-    label = "↓ " + format_speed(rx) + " | ↑ " + format_speed(tx);
+    constexpr double alpha = 0.6; // smoothing factor for EMA
+    if (first_sample_) {
+        smoothed_download_speed_ = instant_download;
+        smoothed_upload_speed_ = instant_upload;
+        first_sample_ = false;
+    } else {
+        smoothed_download_speed_ = alpha * instant_download + (1.0 - alpha) * smoothed_download_speed_;
+        smoothed_upload_speed_ = alpha * instant_upload + (1.0 - alpha) * smoothed_upload_speed_;
+    }
+
+    current_download_speed.store(smoothed_download_speed_);
+    current_upload_speed.store(smoothed_upload_speed_);
+
     std::ostringstream tooltip_oss;
     tooltip_oss.precision(2);
     tooltip_oss << std::fixed;
     tooltip_oss << "Interface: " << iface << "\nTotal Download: "
                 << (total_rx / 1024.0 / 1024.0) << " MB\nTotal Upload: "
                 << (total_tx / 1024.0 / 1024.0) << " MB";
-    tooltip = tooltip_oss.str();
+    const std::string tooltip = tooltip_oss.str();
+
+    const std::string label = "↓ " + format_speed(smoothed_download_speed_) +
+                              " | ↑ " + format_speed(smoothed_upload_speed_);
+
+    {
+        std::lock_guard<std::mutex> lock(label_mutex_);
+        label_ = label;
+        tooltip_ = tooltip;
+    }
 
     // Debug output
     std::cout << "[DEBUG] Interface: " << iface
               << " | RX: " << rx << " bytes | TX: " << tx << " bytes"
-              << " | Current Down: " << current_download_speed << " B/s"
-              << " | Current Up: " << current_upload_speed << " B/s"
-              << " | Label: " << label << std::endl;
+              << " | Instant Down: " << instant_download << " B/s"
+              << " | Instant Up: " << instant_upload << " B/s"
+              << " | Smoothed Down: " << smoothed_download_speed_
+              << " B/s | Smoothed Up: " << smoothed_upload_speed_
+              << " B/s | Label: " << label << std::endl;
+}
+
+std::string SpeedMeter::format_speed(double bytes) const {
+    std::ostringstream oss;
+    double bits = bytes * 8.0;
+    double kbits = bits / 1024.0;
+    oss << std::fixed;
+    if (kbits < 1024.0) {
+        oss.precision(1);
+        oss << kbits << " Kb/s";
+    } else {
+        oss.precision(2);
+        oss << (kbits / 1024.0) << " Mb/s";
+    }
+    return oss.str();
+}
+
+std::string SpeedMeter::get_label() const {
+    std::lock_guard<std::mutex> lock(label_mutex_);
+    return label_;
+}
+
+std::string SpeedMeter::get_tooltip() const {
+    std::lock_guard<std::mutex> lock(label_mutex_);
+    return tooltip_;
 }

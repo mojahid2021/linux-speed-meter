@@ -3,6 +3,7 @@
 #include <iostream>
 #include <chrono>
 #include <cstring>
+#include <algorithm>
 
 DownloadTest::DownloadTest() 
     : running_(false), totalBytes_(0), currentSpeedMbps_(0.0) {
@@ -27,15 +28,30 @@ void DownloadTest::stop() {
 double DownloadTest::run(const std::string& url, int parallelConnections,
                          int durationSeconds, int warmupSeconds,
                          ProgressCallback callback) {
-    
+
+    if (durationSeconds <= 0) {
+        durationSeconds = 1;
+    }
+    if (warmupSeconds < 0) {
+        warmupSeconds = 0;
+    }
+
+    int totalDuration = std::max(durationSeconds, warmupSeconds + 1);
+    int effectiveWarmup = std::min(warmupSeconds, totalDuration - 1);
+    double measurementWindow = static_cast<double>(totalDuration - effectiveWarmup);
+    if (measurementWindow <= 0.0) {
+        measurementWindow = 1.0;
+    }
+
     running_ = true;
     totalBytes_ = 0;
     currentSpeedMbps_ = 0.0;
     threads_.clear();
     
     auto startTime = std::chrono::steady_clock::now();
-    auto warmupEnd = startTime + std::chrono::seconds(warmupSeconds);
-    auto testEnd = startTime + std::chrono::seconds(durationSeconds);
+    auto warmupEnd = startTime + std::chrono::seconds(effectiveWarmup);
+    auto testEnd = startTime + std::chrono::seconds(totalDuration);
+    auto measurementStart = (effectiveWarmup == 0) ? startTime : warmupEnd;
     
     // Start parallel download threads
     for (int i = 0; i < parallelConnections && running_; ++i) {
@@ -55,18 +71,21 @@ double DownloadTest::run(const std::string& url, int parallelConnections,
         if (!warmupComplete && now >= warmupEnd) {
             bytesAtWarmupEnd = totalBytes_.load();
             warmupComplete = true;
+            measurementStart = now;
         }
         
         // Calculate current speed (after warmup)
         if (warmupComplete) {
-            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - warmupEnd).count() / 1000.0;
+            auto elapsed = std::chrono::duration<double>(now - measurementStart).count();
             if (elapsed > 0) {
                 uint64_t measuredBytes = totalBytes_.load() - bytesAtWarmupEnd;
                 double mbps = calculateMbps(measuredBytes, elapsed);
                 currentSpeedMbps_ = mbps;
                 
                 if (callback) {
-                    double progress = elapsed / (durationSeconds - warmupSeconds);
+                    double progress = elapsed / measurementWindow;
+                    if (progress < 0.0) progress = 0.0;
+                    if (progress > 1.0) progress = 1.0;
                     callback("Downloading...", progress, mbps);
                 }
             }
@@ -84,13 +103,16 @@ double DownloadTest::run(const std::string& url, int parallelConnections,
     
     // Calculate final speed (excluding warmup period)
     auto finalTime = std::chrono::steady_clock::now();
-    auto totalElapsed = std::chrono::duration_cast<std::chrono::milliseconds>(finalTime - warmupEnd).count() / 1000.0;
-    
-    if (totalElapsed > 0) {
-        uint64_t measuredBytes = totalBytes_.load() - bytesAtWarmupEnd;
+    double totalElapsed = std::chrono::duration<double>(finalTime - measurementStart).count();
+    if (totalElapsed <= 0.0) {
+        totalElapsed = std::chrono::duration<double>(finalTime - startTime).count();
+    }
+
+    if (totalElapsed > 0.0) {
+        uint64_t measuredBytes = totalBytes_.load() - (warmupComplete ? bytesAtWarmupEnd : 0);
         return calculateMbps(measuredBytes, totalElapsed);
     }
-    
+
     return 0.0;
 }
 

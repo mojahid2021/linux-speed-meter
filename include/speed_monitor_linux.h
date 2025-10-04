@@ -5,6 +5,7 @@
 #include <QObject>
 #include <QThread>
 #include <QMutex>
+#include <QElapsedTimer>
 #include <atomic>
 #include <fstream>
 
@@ -32,8 +33,8 @@ public:
 
 private:
     void monitorNetwork();
-    QString formatBytes(quint64 bytes) const;
-    QString formatSpeed(quint64 bytesPerSecond) const;
+    QString formatBytes(double bytes) const;
+    QString formatSpeed(double bytesPerSecond) const;
     bool readNetworkStats(quint64& rx, quint64& tx);
 
     QThread* monitorThread_;
@@ -42,12 +43,16 @@ private:
     // Network statistics
     std::atomic<quint64> totalDownloaded_;
     std::atomic<quint64> totalUploaded_;
-    std::atomic<quint64> downloadRate_;
-    std::atomic<quint64> uploadRate_;
+    std::atomic<double> downloadRate_;
+    std::atomic<double> uploadRate_;
 
     // Previous values for rate calculation
     quint64 prevDownloaded_;
     quint64 prevUploaded_;
+    QElapsedTimer timer_;
+    bool firstSample_;
+    double smoothedDownload_;
+    double smoothedUpload_;
 
     // Interface information
     QString interfaceName_;

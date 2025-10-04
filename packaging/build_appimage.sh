@@ -49,20 +49,21 @@ if [ ! -f linuxdeploy-x86_64.AppImage ]; then
 fi
 
 # Try to build AppImage with linuxdeploy
+VERSION=$(cat ../../VERSION)
 if ./linuxdeploy-x86_64.AppImage --appimage-extract-and-run --appdir AppDir --output appimage; then
     # Rename and move to dist
-    mv Linux_Speed_Meter-x86_64.AppImage ../../dist/linux-speed-meter-1.0.0-x86_64.AppImage
-    echo "AppImage created: dist/linux-speed-meter-1.0.0-x86_64.AppImage"
+    mv Linux_Speed_Meter-x86_64.AppImage ../../dist/linux-speed-meter-${VERSION}-x86_64.AppImage
+    echo "AppImage created: dist/linux-speed-meter-${VERSION}-x86_64.AppImage"
 else
     echo "linuxdeploy failed, trying manual AppImage creation..."
     
     # Create portable tar.gz bundle as fallback
     cd AppDir
-    tar -czf ../../../dist/linux-speed-meter-1.0.0-x86_64.tar.gz .
+    tar -czf ../../../dist/linux-speed-meter-${VERSION}-x86_64.tar.gz .
     cd ..
     
     # Create simple .run script
-    cat > ../../dist/linux-speed-meter-1.0.0-x86_64.run << 'INNER_EOF'
+    cat > ../../dist/linux-speed-meter-${VERSION}-x86_64.run << 'INNER_EOF'
 #!/bin/bash
 # Simple self-extracting archive for Linux Speed Meter
 
@@ -82,8 +83,8 @@ __ARCHIVE_START__
 INNER_EOF
     
     # Append the tar archive to the run script
-    cat ../../dist/linux-speed-meter-1.0.0-x86_64.tar.gz >> ../../dist/linux-speed-meter-1.0.0-x86_64.run
-    chmod +x ../../dist/linux-speed-meter-1.0.0-x86_64.run
+    cat ../../dist/linux-speed-meter-${VERSION}-x86_64.tar.gz >> ../../dist/linux-speed-meter-${VERSION}-x86_64.run
+    chmod +x ../../dist/linux-speed-meter-${VERSION}-x86_64.run
     
-    echo "Portable bundle created: dist/linux-speed-meter-1.0.0-x86_64.run"
+    echo "Portable bundle created: dist/linux-speed-meter-${VERSION}-x86_64.run"
 fi

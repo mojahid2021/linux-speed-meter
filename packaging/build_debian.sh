@@ -50,12 +50,16 @@ chmod 755 "$PKG_DIR/usr/bin/linux-speed-meter"
 chmod 644 "$PKG_DIR/usr/share/applications/linux-speed-meter.desktop"
 chmod 644 "$PKG_DIR/usr/share/icons/hicolor/256x256/apps/linux-speed-meter.png"
 
+# Update version in control file
+VERSION=$(cat "$PROJECT_DIR/VERSION")
+sed -i "s/Version: .*/Version: $VERSION/" "$PKG_DIR/DEBIAN/control"
+
 # Build the package
 cd packaging
-dpkg-deb --build debian linux-speed-meter_1.0.0_amd64.deb
+dpkg-deb --build debian linux-speed-meter_${VERSION}_amd64.deb
 
 # Move to dist directory
 mkdir -p ../dist
-mv linux-speed-meter_1.0.0_amd64.deb ../dist/
+mv linux-speed-meter_${VERSION}_amd64.deb ../dist/
 
-echo "Debian package created: dist/linux-speed-meter_1.0.0_amd64.deb"
+echo "Debian package created: dist/linux-speed-meter_${VERSION}_amd64.deb"

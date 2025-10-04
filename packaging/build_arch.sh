@@ -11,7 +11,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_DIR"
 PROJECT_NAME="linux-speed-meter"
-VERSION="1.0.0"
+VERSION=$(cat ../../VERSION)
 
 # Create properly structured tarball
 rm -f "${PROJECT_NAME}-${VERSION}.tar.gz"

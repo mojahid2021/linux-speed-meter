@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "speed_monitor_qt.h"
+#include "data_exporter.h"
 #include <QApplication>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -17,6 +18,8 @@
 #include <QDateTimeAxis>
 #include <QDebug>
 #include <QtCharts>
+#include <QFileDialog>
+#include <QMessageBox>
 
 MainWindow::MainWindow(SpeedMonitor* monitor, QWidget* parent)
     : QMainWindow(parent)
@@ -154,12 +157,22 @@ void MainWindow::createSettingsSection(QVBoxLayout* parent) {
     resetButton_ = new QPushButton("Reset Statistics", this);
     connect(resetButton_, &QPushButton::clicked, this, &MainWindow::resetStatistics);
 
+    // Export buttons
+    QHBoxLayout* exportLayout = new QHBoxLayout();
+    exportCSVButton_ = new QPushButton("Export to CSV", this);
+    exportJSONButton_ = new QPushButton("Export to JSON", this);
+    connect(exportCSVButton_, &QPushButton::clicked, this, &MainWindow::exportToCSV);
+    connect(exportJSONButton_, &QPushButton::clicked, this, &MainWindow::exportToJSON);
+    exportLayout->addWidget(exportCSVButton_);
+    exportLayout->addWidget(exportJSONButton_);
+
     layout->addWidget(autoStartCheckBox_);
     layout->addWidget(stayOnTopCheckBox_);
     layout->addWidget(notificationsCheckBox_);
     layout->addLayout(refreshLayout);
     layout->addLayout(themeLayout);
     layout->addWidget(resetButton_);
+    layout->addLayout(exportLayout);
     layout->addStretch();
 
     parent->addWidget(group);
@@ -409,6 +422,21 @@ void MainWindow::updateDisplay() {
 
     // Update charts
     updateCharts();
+    
+    // Record usage data for export
+    UsageRecord record;
+    record.timestamp = QDateTime::currentDateTime();
+    record.downloadSpeed = parseSpeed(speedMonitor_->getDownloadRate());
+    record.uploadSpeed = parseSpeed(speedMonitor_->getUploadRate());
+    record.totalDownload = parseBytes(speedMonitor_->getTotalDownload());
+    record.totalUpload = parseBytes(speedMonitor_->getTotalUpload());
+    
+    usageHistory_.append(record);
+    
+    // Keep only last 1000 records to avoid excessive memory usage
+    if (usageHistory_.size() > 1000) {
+        usageHistory_.removeFirst();
+    }
 
 #ifdef Q_OS_WIN
     // Update Windows taskbar
@@ -556,3 +584,37 @@ void MainWindow::updateWindowsTaskbar() {
     setWindowTitle("Speed Meter - " + tooltip);
 }
 #endif
+
+void MainWindow::exportToCSV() {
+    QString filename = QFileDialog::getSaveFileName(this, 
+        "Export to CSV", 
+        QDir::homePath() + "/speed_meter_data.csv",
+        "CSV Files (*.csv)");
+    
+    if (!filename.isEmpty()) {
+        if (DataExporter::exportToCSV(filename, usageHistory_)) {
+            QMessageBox::information(this, "Export Successful", 
+                QString("Data exported to %1").arg(filename));
+        } else {
+            QMessageBox::warning(this, "Export Failed", 
+                "Failed to export data to CSV file.");
+        }
+    }
+}
+
+void MainWindow::exportToJSON() {
+    QString filename = QFileDialog::getSaveFileName(this, 
+        "Export to JSON", 
+        QDir::homePath() + "/speed_meter_data.json",
+        "JSON Files (*.json)");
+    
+    if (!filename.isEmpty()) {
+        if (DataExporter::exportToJSON(filename, usageHistory_)) {
+            QMessageBox::information(this, "Export Successful", 
+                QString("Data exported to %1").arg(filename));
+        } else {
+            QMessageBox::warning(this, "Export Failed", 
+                "Failed to export data to JSON file.");
+        }
+    }
+}

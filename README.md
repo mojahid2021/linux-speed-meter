@@ -2,6 +2,12 @@
 
 Linux Speed Meter is a cross-platform application designed to monitor and display internet upload and download speeds in real-time. It runs as a system tray application or a small window, making it compatible with popular desktop environments such as GNOME, KDE, XFCE, and Windows.
 
+## Version
+
+**Current Version: 2.0.0**
+
+See [CHANGELOG.md](CHANGELOG.md) for detailed version history and release notes.
+
 ## Features
 
 - **Real-time monitoring** of internet speeds with live updates
@@ -15,7 +21,14 @@ Linux Speed Meter is a cross-platform application designed to monitor and displa
   - **Monthly Statistics**: Total data usage, peak speeds, active days
   - **Data Limits**: Configurable monthly limits with usage warnings
   - **Persistent Data**: Statistics saved across sessions
-- **Cross-platform compatibility** (Linux GTK and Windows console/Qt)
+- **Cross-platform compatibility** (Linux GTK and Windows Qt GUI)
+- **Advanced Features** (New in v2.0):
+  - **Dark Mode Theme**: Modern dark theme for better viewing experience
+  - **Data Export**: Export usage statistics to CSV or JSON formats
+  - **Customizable Refresh Rate**: Adjust update frequency (1-60 seconds)
+  - **Notifications**: Alerts for connection status and data limits
+  - **Windows Taskbar Integration**: Real-time speed display in window title
+  - **Historical Data Tracking**: Keep last 1000 data points for analysis
 - **Minimal resource usage** with efficient monitoring
 - **Auto-start functionality** on system boot
 - **Cross-compilation support** - Build Windows .exe from Linux
@@ -423,7 +436,18 @@ This project is licensed under the MIT License. See the LICENSE file for more de
 
 ## Changelog
 
-### Version 1.0.0 (Current)
+### Version 2.0.0 (Current)
+- ✅ **Windows GUI Application**: Full Qt-based GUI with system tray
+- ✅ **Dark Mode Theme**: Modern theme support for better user experience
+- ✅ **Data Export**: Export statistics to CSV and JSON formats
+- ✅ **Customizable Settings**: Adjustable refresh rates and display options
+- ✅ **Notification System**: Alerts for data limits and connection issues
+- ✅ **Windows Taskbar Integration**: Real-time speed display in window title
+- ✅ **Enhanced Linux GUI**: Export buttons and improved user interface
+- ✅ **Historical Data Tracking**: Track and export up to 1000 data points
+- ✅ **Version Management**: Centralized VERSION file and CHANGELOG.md
+
+### Version 1.0.0
 - ✅ **Cross-compilation support**: Build Windows .exe from Linux Ubuntu
 - ✅ **Enhanced dashboard**: Monthly statistics and data limits
 - ✅ **Data persistence**: Statistics saved across sessions

@@ -72,6 +72,8 @@ private:
     void onRefreshRateChanged(int value);
     void onThemeChanged(int index);
     void showNotification(const QString& title, const QString& message);
+    void exportToCSV();
+    void exportToJSON();
 
 #ifdef Q_OS_WIN
     void updateWindowsTaskbar();
@@ -87,6 +89,9 @@ private:
     int sessionSeconds_;
     double peakDownload_;
     double peakUpload_;
+    
+    // Historical data for export
+    QVector<struct UsageRecord> usageHistory_;
 
     // UI elements
     QWidget* centralWidget_;
@@ -124,6 +129,8 @@ private:
     QSpinBox* refreshRateSpinBox_;
     QComboBox* themeComboBox_;
     QCheckBox* notificationsCheckBox_;
+    QPushButton* exportCSVButton_;
+    QPushButton* exportJSONButton_;
     
     // System tray for notifications
     QSystemTrayIcon* trayIcon_;

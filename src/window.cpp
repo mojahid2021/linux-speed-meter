@@ -4,6 +4,8 @@
 #include <sstream>
 #include <chrono>
 #include <ctime>
+#include <fstream>
+#include <vector>
 
 Window::Window() : window(nullptr), uploadLabel(nullptr), downloadLabel(nullptr),
                    totalLabel(nullptr), interfaceLabel(nullptr), ipLabel(nullptr),
@@ -180,6 +182,20 @@ void Window::createButtonSection(GtkWidget* parent) {
     GtkWidget* hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
     gtk_box_pack_start(GTK_BOX(parent), hbox, FALSE, FALSE, 5);
 
+    // Export CSV button
+    GtkWidget* exportCSVButton = gtk_button_new_with_label("Export CSV");
+    g_signal_connect(exportCSVButton, "clicked", G_CALLBACK(+[](GtkWidget*, gpointer self) {
+        static_cast<Window*>(self)->exportToCSV();
+    }), this);
+    gtk_box_pack_start(GTK_BOX(hbox), exportCSVButton, FALSE, FALSE, 0);
+
+    // Export JSON button
+    GtkWidget* exportJSONButton = gtk_button_new_with_label("Export JSON");
+    g_signal_connect(exportJSONButton, "clicked", G_CALLBACK(+[](GtkWidget*, gpointer self) {
+        static_cast<Window*>(self)->exportToJSON();
+    }), this);
+    gtk_box_pack_start(GTK_BOX(hbox), exportJSONButton, FALSE, FALSE, 0);
+
     // Reset button
     GtkWidget* resetButton = gtk_button_new_with_label("Reset Statistics");
     g_signal_connect(resetButton, "clicked", G_CALLBACK(+[](GtkWidget*, gpointer self) {
@@ -208,6 +224,25 @@ void Window::updateSpeeds(double uploadSpeed, double downloadSpeed, double total
 
     if (totalLabel) {
         // Update total statistics
+        std::stringstream totalText;
+        totalText << formatBytes(totalDownload) << " / " << formatBytes(totalUpload);
+        gtk_label_set_text(totalLabel, totalText.str().c_str());
+    }
+    
+    // Record usage data for export
+    UsageData data;
+    data.timestamp = std::chrono::system_clock::now();
+    data.downloadSpeed = downloadSpeed;
+    data.uploadSpeed = uploadSpeed;
+    data.totalDownload = totalDownload;
+    data.totalUpload = totalUpload;
+    
+    usageHistory.push_back(data);
+    
+    // Keep only last 1000 records
+    if (usageHistory.size() > 1000) {
+        usageHistory.erase(usageHistory.begin());
+    }
         std::stringstream totalText;
         totalText << "Total: " << formatBytes(totalDownload) << " downloaded, "
                   << formatBytes(totalUpload) << " uploaded";
@@ -381,4 +416,136 @@ void Window::handleClose() {
     if (window) {
         gtk_widget_hide(window);
     }
+}
+
+void Window::exportToCSV() {
+    GtkWidget* dialog = gtk_file_chooser_dialog_new("Export to CSV",
+        GTK_WINDOW(window),
+        GTK_FILE_CHOOSER_ACTION_SAVE,
+        "_Cancel", GTK_RESPONSE_CANCEL,
+        "_Save", GTK_RESPONSE_ACCEPT,
+        NULL);
+    
+    gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), "speed_meter_data.csv");
+    
+    if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+        char* filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+        
+        std::ofstream file(filename);
+        if (file.is_open()) {
+            // Write CSV header
+            file << "Timestamp,Download Speed (MB/s),Upload Speed (MB/s),Total Download (MB),Total Upload (MB)\n";
+            
+            // Write data
+            for (const auto& data : usageHistory) {
+                auto time_t = std::chrono::system_clock::to_time_t(data.timestamp);
+                struct tm* tm_info = std::localtime(&time_t);
+                char timeStr[64];
+                std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", tm_info);
+                
+                file << timeStr << ","
+                     << std::fixed << std::setprecision(3) << (data.downloadSpeed / (1024.0 * 1024.0)) << ","
+                     << std::fixed << std::setprecision(3) << (data.uploadSpeed / (1024.0 * 1024.0)) << ","
+                     << std::fixed << std::setprecision(2) << (data.totalDownload / (1024.0 * 1024.0)) << ","
+                     << std::fixed << std::setprecision(2) << (data.totalUpload / (1024.0 * 1024.0)) << "\n";
+            }
+            
+            file.close();
+            
+            GtkWidget* msgDialog = gtk_message_dialog_new(GTK_WINDOW(window),
+                GTK_DIALOG_DESTROY_WITH_PARENT,
+                GTK_MESSAGE_INFO,
+                GTK_BUTTONS_OK,
+                "Data exported successfully to CSV");
+            gtk_dialog_run(GTK_DIALOG(msgDialog));
+            gtk_widget_destroy(msgDialog);
+        } else {
+            GtkWidget* errorDialog = gtk_message_dialog_new(GTK_WINDOW(window),
+                GTK_DIALOG_DESTROY_WITH_PARENT,
+                GTK_MESSAGE_ERROR,
+                GTK_BUTTONS_OK,
+                "Failed to export data to CSV");
+            gtk_dialog_run(GTK_DIALOG(errorDialog));
+            gtk_widget_destroy(errorDialog);
+        }
+        
+        g_free(filename);
+    }
+    
+    gtk_widget_destroy(dialog);
+}
+
+void Window::exportToJSON() {
+    GtkWidget* dialog = gtk_file_chooser_dialog_new("Export to JSON",
+        GTK_WINDOW(window),
+        GTK_FILE_CHOOSER_ACTION_SAVE,
+        "_Cancel", GTK_RESPONSE_CANCEL,
+        "_Save", GTK_RESPONSE_ACCEPT,
+        NULL);
+    
+    gtk_file_chooser_set_current_name(GTK_FILE_CHOOSER(dialog), "speed_meter_data.json");
+    
+    if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+        char* filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+        
+        std::ofstream file(filename);
+        if (file.is_open()) {
+            // Write JSON
+            auto now = std::chrono::system_clock::now();
+            auto time_t = std::chrono::system_clock::to_time_t(now);
+            struct tm* tm_info = std::localtime(&time_t);
+            char exportTime[64];
+            std::strftime(exportTime, sizeof(exportTime), "%Y-%m-%d %H:%M:%S", tm_info);
+            
+            file << "{\n";
+            file << "  \"exportDate\": \"" << exportTime << "\",\n";
+            file << "  \"recordCount\": " << usageHistory.size() << ",\n";
+            file << "  \"data\": [\n";
+            
+            for (size_t i = 0; i < usageHistory.size(); ++i) {
+                const auto& data = usageHistory[i];
+                auto data_time_t = std::chrono::system_clock::to_time_t(data.timestamp);
+                struct tm* data_tm = std::localtime(&data_time_t);
+                char timeStr[64];
+                std::strftime(timeStr, sizeof(timeStr), "%Y-%m-%d %H:%M:%S", data_tm);
+                
+                file << "    {\n";
+                file << "      \"timestamp\": \"" << timeStr << "\",\n";
+                file << "      \"downloadSpeedMBps\": " << std::fixed << std::setprecision(3) 
+                     << (data.downloadSpeed / (1024.0 * 1024.0)) << ",\n";
+                file << "      \"uploadSpeedMBps\": " << std::fixed << std::setprecision(3) 
+                     << (data.uploadSpeed / (1024.0 * 1024.0)) << ",\n";
+                file << "      \"totalDownloadMB\": " << std::fixed << std::setprecision(2) 
+                     << (data.totalDownload / (1024.0 * 1024.0)) << ",\n";
+                file << "      \"totalUploadMB\": " << std::fixed << std::setprecision(2) 
+                     << (data.totalUpload / (1024.0 * 1024.0)) << "\n";
+                file << "    }" << (i < usageHistory.size() - 1 ? "," : "") << "\n";
+            }
+            
+            file << "  ]\n";
+            file << "}\n";
+            
+            file.close();
+            
+            GtkWidget* msgDialog = gtk_message_dialog_new(GTK_WINDOW(window),
+                GTK_DIALOG_DESTROY_WITH_PARENT,
+                GTK_MESSAGE_INFO,
+                GTK_BUTTONS_OK,
+                "Data exported successfully to JSON");
+            gtk_dialog_run(GTK_DIALOG(msgDialog));
+            gtk_widget_destroy(msgDialog);
+        } else {
+            GtkWidget* errorDialog = gtk_message_dialog_new(GTK_WINDOW(window),
+                GTK_DIALOG_DESTROY_WITH_PARENT,
+                GTK_MESSAGE_ERROR,
+                GTK_BUTTONS_OK,
+                "Failed to export data to JSON");
+            gtk_dialog_run(GTK_DIALOG(errorDialog));
+            gtk_widget_destroy(errorDialog);
+        }
+        
+        g_free(filename);
+    }
+    
+    gtk_widget_destroy(dialog);
 }

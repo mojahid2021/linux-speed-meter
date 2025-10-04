@@ -26,6 +26,8 @@ MainWindow::MainWindow(SpeedMonitor* monitor, QWidget* parent)
     , tabWidget_(new QTabWidget(this))
     , startTime_(QDateTime::currentDateTime())
     , sessionSeconds_(0)
+    , trayIcon_(nullptr)
+    , darkMode_(false)
 {
     setWindowTitle("Internet Speed Meter - Dashboard");
     setWindowIcon(QIcon(":/icons/network.svg"));
@@ -39,7 +41,7 @@ MainWindow::MainWindow(SpeedMonitor* monitor, QWidget* parent)
     // Connect signals
     connect(updateTimer_, &QTimer::timeout, this, &MainWindow::updateDisplay);
 
-    // Start update timer
+    // Start update timer (default 1 second)
     updateTimer_->start(1000);
 
     // Initial update
@@ -118,12 +120,45 @@ void MainWindow::createSettingsSection(QVBoxLayout* parent) {
     stayOnTopCheckBox_->setChecked(true);
     connect(stayOnTopCheckBox_, &QCheckBox::toggled, this, &MainWindow::toggleStayOnTop);
 
+    // Notifications option
+    notificationsCheckBox_ = new QCheckBox("Enable notifications", this);
+    notificationsCheckBox_->setChecked(true);
+
+    // Refresh rate setting
+    QHBoxLayout* refreshLayout = new QHBoxLayout();
+    QLabel* refreshLabel = new QLabel("Refresh Rate (seconds):", this);
+    refreshRateSpinBox_ = new QSpinBox(this);
+    refreshRateSpinBox_->setMinimum(1);
+    refreshRateSpinBox_->setMaximum(60);
+    refreshRateSpinBox_->setValue(1);
+    refreshRateSpinBox_->setSuffix(" s");
+    connect(refreshRateSpinBox_, QOverload<int>::of(&QSpinBox::valueChanged), 
+            this, &MainWindow::onRefreshRateChanged);
+    refreshLayout->addWidget(refreshLabel);
+    refreshLayout->addWidget(refreshRateSpinBox_);
+    refreshLayout->addStretch();
+
+    // Theme selection
+    QHBoxLayout* themeLayout = new QHBoxLayout();
+    QLabel* themeLabel = new QLabel("Theme:", this);
+    themeComboBox_ = new QComboBox(this);
+    themeComboBox_->addItem("Light");
+    themeComboBox_->addItem("Dark");
+    connect(themeComboBox_, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &MainWindow::onThemeChanged);
+    themeLayout->addWidget(themeLabel);
+    themeLayout->addWidget(themeComboBox_);
+    themeLayout->addStretch();
+
     // Reset statistics button
     resetButton_ = new QPushButton("Reset Statistics", this);
     connect(resetButton_, &QPushButton::clicked, this, &MainWindow::resetStatistics);
 
     layout->addWidget(autoStartCheckBox_);
     layout->addWidget(stayOnTopCheckBox_);
+    layout->addWidget(notificationsCheckBox_);
+    layout->addLayout(refreshLayout);
+    layout->addLayout(themeLayout);
     layout->addWidget(resetButton_);
     layout->addStretch();
 
@@ -375,6 +410,11 @@ void MainWindow::updateDisplay() {
     // Update charts
     updateCharts();
 
+#ifdef Q_OS_WIN
+    // Update Windows taskbar
+    updateWindowsTaskbar();
+#endif
+
     // Update status bar
     statusBar_->setText(QString("Last updated: %1").arg(QDateTime::currentDateTime().toString("hh:mm:ss")));
 }
@@ -473,3 +513,46 @@ void MainWindow::closeEvent(QCloseEvent* event) {
     hide();
     event->ignore();
 }
+
+void MainWindow::onRefreshRateChanged(int value) {
+    // Update timer interval (value is in seconds, convert to milliseconds)
+    updateTimer_->setInterval(value * 1000);
+}
+
+void MainWindow::onThemeChanged(int index) {
+    darkMode_ = (index == 1);
+    
+    // Apply theme
+    QString styleSheet;
+    if (darkMode_) {
+        styleSheet = R"(
+            QMainWindow, QWidget { background-color: #2b2b2b; color: #ffffff; }
+            QGroupBox { border: 1px solid #555; border-radius: 5px; margin-top: 10px; padding: 10px; }
+            QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px; }
+            QLabel { color: #ffffff; }
+            QTabWidget::pane { border: 1px solid #555; }
+            QTabBar::tab { background: #3c3c3c; color: #ffffff; padding: 8px 16px; }
+            QTabBar::tab:selected { background: #4CAF50; }
+        )";
+    } else {
+        styleSheet = "";
+    }
+    
+    qApp->setStyleSheet(styleSheet);
+}
+
+void MainWindow::showNotification(const QString& title, const QString& message) {
+    if (trayIcon_ && notificationsCheckBox_ && notificationsCheckBox_->isChecked()) {
+        trayIcon_->showMessage(title, message, QSystemTrayIcon::Information, 3000);
+    }
+}
+
+#ifdef Q_OS_WIN
+void MainWindow::updateWindowsTaskbar() {
+    // Update Windows taskbar tooltip with current speeds
+    QString tooltip = QString("↓ %1  ↑ %2")
+                        .arg(speedMonitor_->getDownloadRate())
+                        .arg(speedMonitor_->getUploadRate());
+    setWindowTitle("Speed Meter - " + tooltip);
+}
+#endif

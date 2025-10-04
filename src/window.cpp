@@ -22,7 +22,7 @@ void Window::show() {
         // Initialize the GTK window
         window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
         gtk_window_set_title(GTK_WINDOW(window), "Internet Speed Meter - Dashboard");
-        gtk_window_set_default_size(GTK_WINDOW(window), 600, 500);
+        gtk_window_set_default_size(GTK_WINDOW(window), 700, 600);
 
         // Create main vertical box
         GtkWidget* mainVBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
@@ -31,26 +31,43 @@ void Window::show() {
 
         // Title
         GtkWidget* titleLabel = gtk_label_new(NULL);
-        gtk_label_set_markup(GTK_LABEL(titleLabel), "<span size='large' weight='bold'>Internet Usage Dashboard</span>");
+        gtk_label_set_markup(GTK_LABEL(titleLabel), "<span size='large' weight='bold'>Internet Speed Meter</span>");
         gtk_box_pack_start(GTK_BOX(mainVBox), titleLabel, FALSE, FALSE, 5);
 
+        // Create notebook for tabbed interface
+        GtkWidget* notebook = gtk_notebook_new();
+        gtk_box_pack_start(GTK_BOX(mainVBox), notebook, TRUE, TRUE, 5);
+        
+        // Tab 1: Network Monitor
+        GtkWidget* monitorTab = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+        gtk_container_set_border_width(GTK_CONTAINER(monitorTab), 10);
+        
         // Current speeds section
-        createSpeedSection(mainVBox);
+        createSpeedSection(monitorTab);
 
         // Session statistics section
-        createSessionStatsSection(mainVBox);
+        createSessionStatsSection(monitorTab);
 
         // Monthly statistics section
-        createMonthlyStatsSection(mainVBox);
+        createMonthlyStatsSection(monitorTab);
 
         // Data limit section
-        createDataLimitSection(mainVBox);
+        createDataLimitSection(monitorTab);
 
         // Network interface section
-        createInterfaceSection(mainVBox);
+        createInterfaceSection(monitorTab);
 
         // Control buttons
-        createButtonSection(mainVBox);
+        createButtonSection(monitorTab);
+        
+        gtk_notebook_append_page(GTK_NOTEBOOK(notebook), monitorTab, 
+                                gtk_label_new("Network Monitor"));
+        
+        // Tab 2: Speed Test
+        speedTestWidget = std::make_unique<SpeedTestWidget>();
+        GtkWidget* speedTestTab = speedTestWidget->create();
+        gtk_notebook_append_page(GTK_NOTEBOOK(notebook), speedTestTab,
+                                gtk_label_new("Speed Test"));
 
         // Connect the close event - prevent destruction, just hide
         g_signal_connect(window, "delete-event", G_CALLBACK(+[](GtkWidget*, GdkEvent*, gpointer self) {
@@ -242,11 +259,6 @@ void Window::updateSpeeds(double uploadSpeed, double downloadSpeed, double total
     // Keep only last 1000 records
     if (usageHistory.size() > 1000) {
         usageHistory.erase(usageHistory.begin());
-    }
-        std::stringstream totalText;
-        totalText << "Total: " << formatBytes(totalDownload) << " downloaded, "
-                  << formatBytes(totalUpload) << " uploaded";
-        gtk_label_set_text(totalLabel, totalText.str().c_str());
     }
 
     if (interfaceLabel) {

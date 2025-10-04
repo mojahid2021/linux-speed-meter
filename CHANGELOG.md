@@ -5,6 +5,46 @@ All notable changes to Linux Speed Meter will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2024-10-05
+
+### Fixed - Critical Stability Update
+- **Speed Test Crash Fix**: Fixed critical crashes in speed test tab
+  - Proper CURL global initialization for thread safety
+  - Added mutex protection for all UI updates from worker threads
+  - Comprehensive null pointer checks before GTK widget access
+  - Retry logic for transient network failures (max 3 attempts)
+  - Fixed race conditions in test cancellation logic
+
+### Added
+- **RAII Pattern**: CurlHandle wrapper class for automatic resource cleanup
+  - Prevents memory leaks in all network operations
+  - Automatic cleanup even with exceptions
+  - Applied to download, upload, and ping tests
+- **Enhanced Error Handling**:
+  - Pre-connectivity check before full speed test
+  - URL validation before testing
+  - More informative error messages with server names
+  - Better progress indicators (0-100%)
+- **Documentation**:
+  - docs/SPEED_TEST_FIXES.md - Technical details of all fixes
+  - docs/UPGRADE_GUIDE.md - User-friendly upgrade guide
+
+### Enhanced
+- **Build System**:
+  - CMake platform detection (Windows/macOS/Linux)
+  - build.sh now supports clean, debug, and release modes
+  - Release builds use -O3 -march=native optimization
+  - build_all.sh tracks success/failure counts
+- **Network Configuration**:
+  - SSL verification disabled for speed test endpoints (standard practice)
+  - Improved timeout handling
+  - Better connection error recovery
+
+### Performance
+- Optimized Release builds with -O3 and march=native
+- Better resource cleanup prevents memory growth
+- More efficient CURL handle management
+
 ## [2.0.0] - 2024-10-04
 
 ### Added

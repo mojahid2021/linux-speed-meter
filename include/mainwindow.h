@@ -44,6 +44,7 @@ private:
     void createOverviewTab();
     void createStatisticsTab();
     void createChartsTab();
+    void createSpeedTestTab();
     void createSettingsTab();
 
     // Section creation methods

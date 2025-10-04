@@ -11,6 +11,13 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history and release notes.
 ## Features
 
 - **Real-time monitoring** of internet speeds with live updates
+- **Active Speed Testing** - NEW! Test your actual internet connection speed
+  - Download speed test with parallel connections
+  - Upload speed test with accurate measurements
+  - Latency (ping) testing with min/avg/max metrics
+  - Jitter measurement for connection quality
+  - Multiple test servers (Cloudflare, Fast.com, LibreSpeed)
+  - Beautiful GUI with progress indicators
 - **System tray integration** with tooltip displaying current speeds
 - **Comprehensive Dashboard** with detailed usage statistics:
   - Current download/upload speeds
@@ -35,6 +42,7 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history and release notes.
 
 ## Documentation
 
+- **[docs/SPEED_TEST_GUIDE.md](docs/SPEED_TEST_GUIDE.md)** - Complete speed test feature guide
 - **[docs/USER_GUIDE.md](docs/USER_GUIDE.md)** - Complete user guide with tutorials and troubleshooting
 - **[docs/FEATURES.md](docs/FEATURES.md)** - Detailed feature documentation and specifications
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history and release notes
@@ -110,19 +118,19 @@ chmod +x build_windows_cross.sh
 ### Ubuntu/Debian:
 ```bash
 sudo apt update
-sudo apt install build-essential cmake libgtk-3-dev libappindicator3-dev
+sudo apt install build-essential cmake libgtk-3-dev libappindicator3-dev libcurl4-openssl-dev
 # For Windows cross-compilation:
 sudo apt install mingw-w64 g++-mingw-w64-x86-64-win32
 ```
 
 ### Fedora:
 ```bash
-sudo dnf install gcc-c++ cmake gtk3-devel libappindicator-gtk3-devel
+sudo dnf install gcc-c++ cmake gtk3-devel libappindicator-gtk3-devel libcurl-devel
 ```
 
 ### Arch Linux:
 ```bash
-sudo pacman -S base-devel cmake gtk3 libappindicator-gtk3
+sudo pacman -S base-devel cmake gtk3 libappindicator-gtk3 curl
 ```
 
 ## Build with CMake (Recommended)

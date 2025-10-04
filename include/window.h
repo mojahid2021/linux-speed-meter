@@ -5,6 +5,7 @@
 #include <chrono>
 #include <memory>
 #include "data_manager.h"
+#include "speed_test_widget.h"
 
 class Window {
 public:
@@ -51,6 +52,9 @@ private:
 
     std::chrono::system_clock::time_point startTime;
     std::shared_ptr<DataManager> dataManager;
+    
+    // Speed test widget
+    std::unique_ptr<SpeedTestWidget> speedTestWidget;
     
     // Historical data for export
     struct UsageData {

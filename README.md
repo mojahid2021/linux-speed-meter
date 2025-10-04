@@ -33,6 +33,22 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history and release notes.
 - **Auto-start functionality** on system boot
 - **Cross-compilation support** - Build Windows .exe from Linux
 
+## Documentation
+
+- **[USER_GUIDE.md](USER_GUIDE.md)** - Complete user guide with tutorials and troubleshooting
+- **[FEATURES.md](FEATURES.md)** - Detailed feature documentation and specifications
+- **[CHANGELOG.md](CHANGELOG.md)** - Version history and release notes
+- **[README-Windows.md](README-Windows.md)** - Windows-specific build instructions
+
+## Quick Links
+
+- [Installation](#installation)
+- [Building from Source](#build-with-cmake-recommended)
+- [Usage Guide](USER_GUIDE.md)
+- [Features Overview](FEATURES.md)
+- [Contributing](#contributing)
+- [Changelog](#changelog)
+
 ## Installation
 
 ### From Pre-built Packages
@@ -48,23 +64,23 @@ Packages will be generated in the `dist/` directory with organized subdirectorie
 
 #### Debian/Ubuntu
 ```bash
-sudo dpkg -i dist/linux-speed-meter_1.0.0_amd64.deb
+sudo dpkg -i dist/linux-speed-meter_2.0.0_amd64.deb
 ```
 
 #### Fedora/RHEL
 ```bash
-sudo rpm -i dist/linux-speed-meter-1.0.0-1.x86_64.rpm
+sudo rpm -i dist/linux-speed-meter-2.0.0-1.x86_64.rpm
 ```
 
 #### Arch Linux
 ```bash
-sudo pacman -U dist/linux-speed-meter-1.0.0-1-x86_64.pkg.tar.zst
+sudo pacman -U dist/linux-speed-meter-2.0.0-1-x86_64.pkg.tar.zst
 ```
 
 #### AppImage (Universal)
 ```bash
-chmod +x dist/linux-speed-meter-1.0.0-x86_64.AppImage
-./dist/linux-speed-meter-1.0.0-x86_64.AppImage
+chmod +x dist/linux-speed-meter-2.0.0-x86_64.AppImage
+./dist/linux-speed-meter-2.0.0-x86_64.AppImage
 ```
 
 #### Windows (Cross-compiled from Linux)

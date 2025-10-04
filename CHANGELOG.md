@@ -5,7 +5,7 @@ All notable changes to Linux Speed Meter will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.0] - 2024-01-XX (In Development)
+## [2.0.0] - 2024-10-04
 
 ### Added
 - **Windows GUI Application**: Full Qt-based GUI for Windows with system tray
@@ -36,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Memory leaks in monitoring loops
 - UI responsiveness issues
 
-## [1.0.0] - 2024-01-XX
+## [1.0.0] - 2024-09-15
 
 ### Added
 - Cross-compilation support for Windows builds from Linux

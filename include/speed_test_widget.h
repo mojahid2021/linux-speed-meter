@@ -95,6 +95,7 @@ private:
     std::atomic<bool> cancelRequested_;
     std::atomic<bool> workerActive_;
     std::shared_ptr<void> aliveToken_;
+    mutable std::mutex uiMutex_;  // Protect UI access from worker thread
 };
 
 #endif // SPEED_TEST_WIDGET_H

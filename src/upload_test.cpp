@@ -126,6 +126,8 @@ void UploadTest::uploadWorker(const std::string& url, int threadId) {
     // Generate random data for upload (1MB chunk)
     std::vector<char> uploadData = generateUploadData(1024 * 1024);
     uint64_t threadBytes = 0;
+    int consecutiveErrors = 0;
+    const int maxConsecutiveErrors = 3;
     
     // Configure curl for POST upload
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
@@ -134,6 +136,8 @@ void UploadTest::uploadWorker(const std::string& url, int threadId) {
     curl_easy_setopt(curl, CURLOPT_POSTFIELDS, uploadData.data());
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
     curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);  // For speed testing, skip SSL verification
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
     
     // Discard response
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, 
@@ -142,15 +146,18 @@ void UploadTest::uploadWorker(const std::string& url, int threadId) {
         });
     
     // Keep uploading while test is running
-    while (running_) {
+    while (running_ && consecutiveErrors < maxConsecutiveErrors) {
         CURLcode res = curl_easy_perform(curl);
         
         if (res == CURLE_OK) {
             threadBytes += uploadData.size();
             totalBytes_ += uploadData.size();
+            consecutiveErrors = 0;  // Reset error counter on success
         } else if (running_) {
+            consecutiveErrors++;
             std::cerr << "Upload error in thread " << threadId 
-                      << ": " << curl_easy_strerror(res) << std::endl;
+                      << ": " << curl_easy_strerror(res)
+                      << " (attempt " << consecutiveErrors << "/" << maxConsecutiveErrors << ")" << std::endl;
             // Small delay before retry
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }

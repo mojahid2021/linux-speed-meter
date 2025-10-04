@@ -558,6 +558,12 @@ void SpeedTestWidget::refreshHistory() {
 }
 
 void SpeedTestWidget::updateProgress(const std::string& stage, double progress, double currentSpeed) {
+    std::lock_guard<std::mutex> lock(uiMutex_);
+    
+    if (!progressBar_ || !statusLabel_) {
+        return;
+    }
+    
     gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressBar_), progress);
     
     std::string statusText = stage;
@@ -568,6 +574,12 @@ void SpeedTestWidget::updateProgress(const std::string& stage, double progress, 
 }
 
 void SpeedTestWidget::updateResults(const SpeedTestResult& result) {
+    std::lock_guard<std::mutex> lock(uiMutex_);
+    
+    if (!downloadLabel_ || !uploadLabel_ || !pingLabel_ || !jitterLabel_ || !statusLabel_) {
+        return;
+    }
+    
     if (result.success) {
         std::string downloadText = "<span size='large' weight='bold' foreground='#2ecc71'>" + 
                                   formatSpeed(result.downloadSpeedMbps) + "</span>";
@@ -598,16 +610,19 @@ void SpeedTestWidget::updateResults(const SpeedTestResult& result) {
 }
 
 void SpeedTestWidget::setTestRunning(bool running) {
+    std::lock_guard<std::mutex> lock(uiMutex_);
+    
     testRunning_ = running;
-    gtk_widget_set_sensitive(startButton_, !running);
-    gtk_widget_set_sensitive(stopButton_, running);
-    gtk_widget_set_sensitive(serverCombo_, !running);
+    
+    if (startButton_) gtk_widget_set_sensitive(startButton_, !running);
+    if (stopButton_) gtk_widget_set_sensitive(stopButton_, running);
+    if (serverCombo_) gtk_widget_set_sensitive(serverCombo_, !running);
     if (durationSpin_) gtk_widget_set_sensitive(durationSpin_, !running);
     if (warmupSpin_) gtk_widget_set_sensitive(warmupSpin_, !running);
     if (connectionSpin_) gtk_widget_set_sensitive(connectionSpin_, !running);
     if (autoSelectCheck_) gtk_widget_set_sensitive(autoSelectCheck_, !running);
     
-    if (!running) {
+    if (!running && progressBar_) {
         gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(progressBar_), 0.0);
     }
 }

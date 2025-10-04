@@ -8,12 +8,11 @@
 SpeedTest::SpeedTest()
     : parallelConnections_(4), testDuration_(10), warmupTime_(2), 
       timeout_(30), running_(false) {
-    // Initialize curl globally
-    curl_global_init(CURL_GLOBAL_DEFAULT);
+    // CURL is initialized globally in main()
 }
 
 SpeedTest::~SpeedTest() {
-    curl_global_cleanup();
+    // CURL cleanup is handled globally in main()
 }
 
 SpeedTestResult SpeedTest::runCompleteTest(const TestServer& server, ProgressCallback callback) {

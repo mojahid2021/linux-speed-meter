@@ -9,6 +9,7 @@
 #include <string>
 #include <unistd.h>
 #include <cstring>
+#include <curl/curl.h>
 #include "../include/tray_icon.h"
 #include "../include/speed_monitor.h"
 #include "../include/window.h"
@@ -429,6 +430,9 @@ int main(int argc, char *argv[]) {
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
 
+    // Initialize CURL globally (thread-safe initialization)
+    curl_global_init(CURL_GLOBAL_ALL);
+
     gtk_init(&argc, &argv);
     trayIcon.createTrayIcon();
 
@@ -465,6 +469,9 @@ int main(int argc, char *argv[]) {
     g_timeout_add_seconds(1, update_tray, NULL);
 
     gtk_main();
+
+    // Cleanup CURL globally
+    curl_global_cleanup();
 
     return 0;
 }

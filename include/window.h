@@ -18,6 +18,7 @@ public:
     void resetStatistics();
     void exportToCSV();
     void exportToJSON();
+    void setDataManager(DataManager* dm);
 
 private:
     void createSpeedSection(GtkWidget* parent);
@@ -51,7 +52,7 @@ private:
     GtkLabel* dataLimitStatusLabel;
 
     std::chrono::system_clock::time_point startTime;
-    std::shared_ptr<DataManager> dataManager;
+    DataManager* dataManager;
     
     // Speed test widget
     std::unique_ptr<SpeedTestWidget> speedTestWidget;

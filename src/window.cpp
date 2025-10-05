@@ -17,6 +17,10 @@ Window::~Window() {
     }
 }
 
+void Window::setDataManager(DataManager* dm) {
+    dataManager = dm;
+}
+
 void Window::show() {
     if (!window) {
         // Initialize the GTK window

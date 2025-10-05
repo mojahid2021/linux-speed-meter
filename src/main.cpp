@@ -102,6 +102,7 @@ gboolean update_tray(gpointer) {
 void on_show_dashboard(GtkMenuItem*, gpointer) {
     if (!dashboardWindow) {
         dashboardWindow = std::make_unique<Window>();
+        dashboardWindow->setDataManager(dataManager.get());
     }
     dashboardWindow->show();
 }

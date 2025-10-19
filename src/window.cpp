@@ -86,22 +86,69 @@ void Window::show() {
 }
 
 void Window::createSpeedSection(GtkWidget* parent) {
-    GtkWidget* frame = gtk_frame_new("Current Speed");
+    GtkWidget* frame = gtk_frame_new(NULL);
     gtk_box_pack_start(GTK_BOX(parent), frame, FALSE, FALSE, 5);
 
     GtkWidget* vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
     gtk_container_add(GTK_CONTAINER(frame), vbox);
-    gtk_container_set_border_width(GTK_CONTAINER(vbox), 10);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 15);
 
-    // Download speed
+    // Title with icon
+    GtkWidget* titleBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+    GtkWidget* titleLabel = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(titleLabel),
+        "<span size='large' weight='bold' color='#2E86C1'>📊 Current Network Speed</span>");
+    gtk_box_pack_start(GTK_BOX(titleBox), titleLabel, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox), titleBox, FALSE, FALSE, 10);
+
+    // Download speed with progress bar
+    GtkWidget* downloadBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+    GtkWidget* downloadIcon = gtk_label_new("⬇️");
+    gtk_widget_set_size_request(downloadIcon, 30, -1);
     downloadLabel = GTK_LABEL(gtk_label_new("Download: 0 B/s"));
     gtk_label_set_xalign(GTK_LABEL(downloadLabel), 0.0);
-    gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(downloadLabel), FALSE, FALSE, 2);
+    gtk_label_set_markup(GTK_LABEL(downloadLabel),
+        "<span size='large' weight='bold' color='#28B463'>0 B/s</span>");
 
-    // Upload speed
+    downloadProgress_ = gtk_progress_bar_new();
+    gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(downloadProgress_), 0.0);
+    gtk_widget_set_size_request(downloadProgress_, 200, -1);
+
+    gtk_box_pack_start(GTK_BOX(downloadBox), downloadIcon, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(downloadBox), GTK_WIDGET(downloadLabel), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(downloadBox), downloadProgress_, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox), downloadBox, FALSE, FALSE, 5);
+
+    // Upload speed with progress bar
+    GtkWidget* uploadBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+    GtkWidget* uploadIcon = gtk_label_new("⬆️");
+    gtk_widget_set_size_request(uploadIcon, 30, -1);
     uploadLabel = GTK_LABEL(gtk_label_new("Upload: 0 B/s"));
     gtk_label_set_xalign(GTK_LABEL(uploadLabel), 0.0);
-    gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(uploadLabel), FALSE, FALSE, 2);
+    gtk_label_set_markup(GTK_LABEL(uploadLabel),
+        "<span size='large' weight='bold' color='#E67E22'>0 B/s</span>");
+
+    uploadProgress_ = gtk_progress_bar_new();
+    gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(uploadProgress_), 0.0);
+    gtk_widget_set_size_request(uploadProgress_, 200, -1);
+
+    gtk_box_pack_start(GTK_BOX(uploadBox), uploadIcon, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(uploadBox), GTK_WIDGET(uploadLabel), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(uploadBox), uploadProgress_, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox), uploadBox, FALSE, FALSE, 5);
+
+    // Peak speeds display
+    GtkWidget* peakBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 20);
+    GtkWidget* peakDownloadLabel = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(peakDownloadLabel),
+        "<span color='#28B463'>Peak ↓: 0 B/s</span>");
+    GtkWidget* peakUploadLabel = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(peakUploadLabel),
+        "<span color='#E67E22'>Peak ↑: 0 B/s</span>");
+
+    gtk_box_pack_start(GTK_BOX(peakBox), peakDownloadLabel, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(peakBox), peakUploadLabel, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox), peakBox, FALSE, FALSE, 10);
 }
 
 void Window::createSessionStatsSection(GtkWidget* parent) {
@@ -235,12 +282,19 @@ void Window::createButtonSection(GtkWidget* parent) {
 void Window::updateSpeeds(double uploadSpeed, double downloadSpeed, double totalUpload, double totalDownload,
                          const std::string& interface, const std::string& ip, bool connected) {
     if (downloadLabel && uploadLabel) {
-        // Update current speeds
+        // Update current speeds with colored markup
         std::stringstream downloadText, uploadText;
-        formatSpeed(downloadText, downloadSpeed, "Download: ");
-        formatSpeed(uploadText, uploadSpeed, "Upload: ");
-        gtk_label_set_text(downloadLabel, downloadText.str().c_str());
-        gtk_label_set_text(uploadLabel, uploadText.str().c_str());
+        downloadText << "<span size='large' weight='bold' color='#28B463'>" << formatSpeedSimple(downloadSpeed) << "</span>";
+        uploadText << "<span size='large' weight='bold' color='#E67E22'>" << formatSpeedSimple(uploadSpeed) << "</span>";
+        gtk_label_set_markup(downloadLabel, downloadText.str().c_str());
+        gtk_label_set_markup(uploadLabel, uploadText.str().c_str());
+
+        // Update progress bars (normalize to reasonable scale, e.g., max 100 MB/s)
+        double maxSpeed = 100 * 1024 * 1024; // 100 MB/s as max
+        double downloadFraction = std::min(downloadSpeed / maxSpeed, 1.0);
+        double uploadFraction = std::min(uploadSpeed / maxSpeed, 1.0);
+        gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(downloadProgress_), downloadFraction);
+        gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(uploadProgress_), uploadFraction);
     }
 
     if (totalLabel) {

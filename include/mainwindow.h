@@ -17,6 +17,7 @@
 #include <QtCharts>
 #include <QComboBox>
 #include <QSpinBox>
+#include "speed_test_widget_qt.h"
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -101,6 +102,8 @@ private:
     // Overview tab
     QLabel* downloadLabel_;
     QLabel* uploadLabel_;
+    QProgressBar* downloadProgressBar_;
+    QProgressBar* uploadProgressBar_;
     QLabel* sessionTimeLabel_;
     QLabel* totalDataLabel_;
     QLabel* avgSpeedLabel_;
@@ -122,6 +125,11 @@ private:
     QLineSeries* downloadSeries_;
     QLineSeries* uploadSeries_;
     QLabel* dataUsageLabel_;
+    QProgressBar* dataUsageProgress_;
+    QLabel* dataLimitStatusLabel_;
+
+    // Speed Test tab
+    SpeedTestWidgetQt* speedTestWidgetQt_;
 
     // Settings tab
     QCheckBox* autoStartCheckBox_;

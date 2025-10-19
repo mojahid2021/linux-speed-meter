@@ -97,14 +97,40 @@ void MainWindow::createSpeedChart(QVBoxLayout* parent) {
 }
 
 void MainWindow::createDataUsageChart(QVBoxLayout* parent) {
-    QGroupBox* group = new QGroupBox("Data Usage");
+    QGroupBox* group = new QGroupBox("💾 Data Usage & Limits");
+    group->setStyleSheet("QGroupBox { font-weight: bold; color: #2E86C1; border: 2px solid #BDC3C7; border-radius: 5px; margin-top: 10px; }"
+                        "QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px; }");
     QVBoxLayout* layout = new QVBoxLayout(group);
 
-    // Simple data usage display
-    dataUsageLabel_ = new QLabel("Data usage visualization would go here", this);
-    dataUsageLabel_->setAlignment(Qt::AlignCenter);
-    dataUsageLabel_->setStyleSheet("border: 1px solid #ccc; padding: 20px;");
+    // Data usage progress bar
+    QLabel* usageLabel = new QLabel("Data Used:");
+    usageLabel->setStyleSheet("font-weight: bold; color: #2E86C1;");
+    layout->addWidget(usageLabel);
 
+    dataUsageProgress_ = new QProgressBar();
+    dataUsageProgress_->setRange(0, 100);
+    dataUsageProgress_->setValue(0);
+    dataUsageProgress_->setTextVisible(true);
+    dataUsageProgress_->setFixedHeight(25);
+    dataUsageProgress_->setStyleSheet("QProgressBar { border: 2px solid #BDC3C7; border-radius: 5px; text-align: center; font-weight: bold; }"
+                                     "QProgressBar::chunk { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #3498db, stop:1 #2980b9); }");
+    layout->addWidget(dataUsageProgress_);
+
+    // Data limit status with icon
+    QHBoxLayout* statusLayout = new QHBoxLayout();
+    QLabel* statusIcon = new QLabel("📊");
+    statusIcon->setFixedSize(24, 24);
+    dataLimitStatusLabel_ = new QLabel("No limit set");
+    dataLimitStatusLabel_->setStyleSheet("font-weight: bold; color: #666;");
+    statusLayout->addWidget(statusIcon);
+    statusLayout->addWidget(dataLimitStatusLabel_);
+    statusLayout->addStretch();
+    layout->addLayout(statusLayout);
+
+    // Current usage display
+    dataUsageLabel_ = new QLabel("Total: 0 B / 0 B");
+    dataUsageLabel_->setAlignment(Qt::AlignCenter);
+    dataUsageLabel_->setStyleSheet("font-size: 12px; color: #666; background-color: #f8f9fa; padding: 8px; border-radius: 3px; margin-top: 5px;");
     layout->addWidget(dataUsageLabel_);
 
     parent->addWidget(group);
@@ -196,9 +222,33 @@ void MainWindow::updateCharts() {
     }
 
     // Update data usage display
-    dataUsageLabel_->setText(QString("Total Downloaded: %1\nTotal Uploaded: %2")
+    double totalDownloaded = parseBytes(speedMonitor_->getTotalDownloaded());
+    double totalUploaded = parseBytes(speedMonitor_->getTotalUploaded());
+    QString usageText = QString("Total: %1 / %2")
         .arg(speedMonitor_->getTotalDownloaded())
-        .arg(speedMonitor_->getTotalUploaded()));
+        .arg(speedMonitor_->getTotalUploaded());
+    dataUsageLabel_->setText(usageText);
+
+    // Update data usage progress bar if limit is set
+    // For demo purposes, simulate a 100GB limit
+    double dataLimitGB = 100.0;  // 100 GB limit
+    double totalDataGB = (totalDownloaded + totalUploaded) / (1024 * 1024 * 1024);
+    int usagePercent = std::min(static_cast<int>((totalDataGB / dataLimitGB) * 100), 100);
+    dataUsageProgress_->setValue(usagePercent);
+
+    // Update data limit status
+    if (dataLimitStatusLabel_) {
+        if (usagePercent >= 90) {
+            dataLimitStatusLabel_->setText("⚠️ Approaching limit!");
+            dataLimitStatusLabel_->setStyleSheet("font-weight: bold; color: #E74C3C;");
+        } else if (usagePercent >= 100) {
+            dataLimitStatusLabel_->setText("🚫 Limit exceeded!");
+            dataLimitStatusLabel_->setStyleSheet("font-weight: bold; color: #E74C3C;");
+        } else {
+            dataLimitStatusLabel_->setText("✅ Within limit");
+            dataLimitStatusLabel_->setStyleSheet("font-weight: bold; color: #28B463;");
+        }
+    }
 }
 
 void MainWindow::toggleStayOnTop(bool stayOnTop) {
@@ -320,24 +370,60 @@ void MainWindow::createSettingsTab() {
 }
 
 void MainWindow::createCurrentSpeedSection(QVBoxLayout* parent) {
-    QGroupBox* group = new QGroupBox("Current Network Speed");
-    QFormLayout* layout = new QFormLayout(group);
+    QGroupBox* group = new QGroupBox("📊 Current Network Speed");
+    group->setStyleSheet("QGroupBox { font-weight: bold; color: #2E86C1; border: 2px solid #BDC3C7; border-radius: 5px; margin-top: 10px; }"
+                        "QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px; }");
+    QVBoxLayout* layout = new QVBoxLayout(group);
 
-    downloadLabel_ = new QLabel("0 B/s", this);
-    uploadLabel_ = new QLabel("0 B/s", this);
+    // Download speed with icon and progress bar
+    QHBoxLayout* downloadLayout = new QHBoxLayout();
+    QLabel* downloadIcon = new QLabel("⬇️");
+    downloadIcon->setFixedWidth(30);
+    downloadLabel_ = new QLabel("0 B/s");
+    downloadLabel_->setStyleSheet("font-size: 14px; font-weight: bold; color: #28B463;");
 
-    // Make labels larger and colored
-    QFont speedFont = downloadLabel_->font();
-    speedFont.setPointSize(12);
-    speedFont.setBold(true);
-    downloadLabel_->setFont(speedFont);
-    uploadLabel_->setFont(speedFont);
+    downloadProgressBar_ = new QProgressBar();
+    downloadProgressBar_->setRange(0, 100);
+    downloadProgressBar_->setValue(0);
+    downloadProgressBar_->setFixedHeight(20);
+    downloadProgressBar_->setStyleSheet("QProgressBar { border: 1px solid #BDC3C7; border-radius: 3px; text-align: center; }"
+                                       "QProgressBar::chunk { background-color: #28B463; }");
 
-    downloadLabel_->setStyleSheet("color: #4CAF50;");  // Green for download
-    uploadLabel_->setStyleSheet("color: #FF9800;");    // Orange for upload
+    downloadLayout->addWidget(downloadIcon);
+    downloadLayout->addWidget(downloadLabel_);
+    downloadLayout->addWidget(downloadProgressBar_);
+    layout->addLayout(downloadLayout);
 
-    layout->addRow("↓ Download:", downloadLabel_);
-    layout->addRow("↑ Upload:", uploadLabel_);
+    // Upload speed with icon and progress bar
+    QHBoxLayout* uploadLayout = new QHBoxLayout();
+    QLabel* uploadIcon = new QLabel("⬆️");
+    uploadIcon->setFixedWidth(30);
+    uploadLabel_ = new QLabel("0 B/s");
+    uploadLabel_->setStyleSheet("font-size: 14px; font-weight: bold; color: #E67E22;");
+
+    uploadProgressBar_ = new QProgressBar();
+    uploadProgressBar_->setRange(0, 100);
+    uploadProgressBar_->setValue(0);
+    uploadProgressBar_->setFixedHeight(20);
+    uploadProgressBar_->setStyleSheet("QProgressBar { border: 1px solid #BDC3C7; border-radius: 3px; text-align: center; }"
+                                     "QProgressBar::chunk { background-color: #E67E22; }");
+
+    uploadLayout->addWidget(uploadIcon);
+    uploadLayout->addWidget(uploadLabel_);
+    uploadLayout->addWidget(uploadProgressBar_);
+    layout->addLayout(uploadLayout);
+
+    // Peak speeds display
+    QHBoxLayout* peakLayout = new QHBoxLayout();
+    QLabel* peakDownloadLabel = new QLabel("Peak ↓: 0 B/s");
+    peakDownloadLabel->setStyleSheet("color: #28B463; font-weight: bold;");
+    QLabel* peakUploadLabel = new QLabel("Peak ↑: 0 B/s");
+    peakUploadLabel->setStyleSheet("color: #E67E22; font-weight: bold;");
+
+    peakLayout->addWidget(peakDownloadLabel);
+    peakLayout->addStretch();
+    peakLayout->addWidget(peakUploadLabel);
+    layout->addLayout(peakLayout);
 
     parent->addWidget(group);
 }
@@ -404,8 +490,22 @@ void MainWindow::updateDisplay() {
     sessionSeconds_++;
 
     // Update current speeds
-    downloadLabel_->setText(speedMonitor_->getDownloadRate());
-    uploadLabel_->setText(speedMonitor_->getUploadRate());
+    QString downloadSpeed = speedMonitor_->getDownloadRate();
+    QString uploadSpeed = speedMonitor_->getUploadRate();
+    downloadLabel_->setText(downloadSpeed);
+    uploadLabel_->setText(uploadSpeed);
+
+    // Update progress bars (convert speeds to percentage for visualization)
+    double downloadValue = parseSpeed(speedMonitor_->getDownloadRate());
+    double uploadValue = parseSpeed(speedMonitor_->getUploadRate());
+
+    // Scale to 0-100 for progress bar (assuming max 100 MB/s)
+    double maxSpeed = 100 * 1024 * 1024; // 100 MB/s
+    int downloadPercent = std::min(static_cast<int>((downloadValue / maxSpeed) * 100), 100);
+    int uploadPercent = std::min(static_cast<int>((uploadValue / maxSpeed) * 100), 100);
+
+    downloadProgressBar_->setValue(downloadPercent);
+    uploadProgressBar_->setValue(uploadPercent);
 
     // Update session information
     updateSessionInfo();
@@ -623,14 +723,12 @@ void MainWindow::exportToJSON() {
 }
 
 void MainWindow::createSpeedTestTab() {
-    // This will be implemented when Qt is being built
-    // For now, create a placeholder
     QWidget* speedTestWidget = new QWidget();
     QVBoxLayout* layout = new QVBoxLayout(speedTestWidget);
     
-    QLabel* label = new QLabel("Speed Test feature (requires Qt build with speed_test_widget_qt.cpp)");
-    label->setAlignment(Qt::AlignCenter);
-    layout->addWidget(label);
+    // Create the actual speed test widget
+    speedTestWidgetQt_ = new SpeedTestWidgetQt(speedTestWidget);
+    layout->addWidget(speedTestWidgetQt_);
     
     tabWidget_->addTab(speedTestWidget, "Speed Test");
 }

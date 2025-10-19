@@ -54,22 +54,28 @@ GtkWidget* SpeedTestWidget::create() {
     // Title
     GtkWidget* titleLabel = gtk_label_new(nullptr);
     gtk_label_set_markup(GTK_LABEL(titleLabel), 
-        "<span size='x-large' weight='bold'>Internet Speed Test</span>");
+        "<span size='x-large' weight='bold' color='#2E86C1'>🚀 Internet Speed Test</span>");
     gtk_box_pack_start(GTK_BOX(container_), titleLabel, FALSE, FALSE, 10);
     
-    // Server selection
-    GtkWidget* serverBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
-    GtkWidget* serverLabel = gtk_label_new("Test Server:");
-    gtk_widget_set_size_request(serverLabel, 100, -1);
-    gtk_box_pack_start(GTK_BOX(serverBox), serverLabel, FALSE, FALSE, 0);
+    // Server selection with better styling
+    GtkWidget* serverFrame = gtk_frame_new("Test Server");
+    gtk_box_pack_start(GTK_BOX(container_), serverFrame, FALSE, FALSE, 5);
+    
+    GtkWidget* serverBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+    gtk_container_add(GTK_CONTAINER(serverFrame), serverBox);
+    gtk_container_set_border_width(GTK_CONTAINER(serverBox), 10);
+    
+    GtkWidget* serverLabel = gtk_label_new("Select Test Server:");
+    gtk_label_set_xalign(GTK_LABEL(serverLabel), 0.0);
+    gtk_label_set_markup(GTK_LABEL(serverLabel), "<b>Select Test Server:</b>");
+    gtk_box_pack_start(GTK_BOX(serverBox), serverLabel, FALSE, FALSE, 5);
     
     serverCombo_ = gtk_combo_box_text_new();
     for (const auto& server : servers_) {
         gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(serverCombo_), server.name.c_str());
     }
     gtk_combo_box_set_active(GTK_COMBO_BOX(serverCombo_), 0);
-    gtk_box_pack_start(GTK_BOX(serverBox), serverCombo_, TRUE, TRUE, 0);
-    gtk_box_pack_start(GTK_BOX(container_), serverBox, FALSE, FALSE, 5);
+    gtk_box_pack_start(GTK_BOX(serverBox), serverCombo_, FALSE, FALSE, 0);
 
     // Advanced settings
     GtkWidget* settingsExpander = gtk_expander_new("Advanced Settings");
@@ -144,54 +150,67 @@ GtkWidget* SpeedTestWidget::create() {
     
     gtk_box_pack_start(GTK_BOX(container_), buttonBox, FALSE, FALSE, 10);
     
-    // Results section
-    GtkWidget* resultsFrame = gtk_frame_new("Test Results");
-    GtkWidget* resultsBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
-    gtk_widget_set_margin_start(resultsBox, 15);
-    gtk_widget_set_margin_end(resultsBox, 15);
-    gtk_widget_set_margin_top(resultsBox, 15);
-    gtk_widget_set_margin_bottom(resultsBox, 15);
+    // Results section with better styling
+    GtkWidget* resultsFrame = gtk_frame_new(NULL);
+    GtkWidget* resultsTitleBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+    GtkWidget* resultsTitleLabel = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(resultsTitleLabel), "<span size='large' weight='bold' color='#2E86C1'>📊 Test Results</span>");
+    gtk_box_pack_start(GTK_BOX(resultsTitleBox), resultsTitleLabel, FALSE, FALSE, 0);
+    gtk_frame_set_label_widget(GTK_FRAME(resultsFrame), resultsTitleBox);
     
-    // Download speed
+    GtkWidget* resultsBox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    gtk_container_add(GTK_CONTAINER(resultsFrame), resultsBox);
+    gtk_container_set_border_width(GTK_CONTAINER(resultsBox), 15);
+    
+    // Download speed with icon
     GtkWidget* downloadBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+    GtkWidget* downloadIcon = gtk_label_new("⬇️");
+    gtk_widget_set_size_request(downloadIcon, 30, -1);
     GtkWidget* downloadTitleLabel = gtk_label_new("Download:");
-    gtk_widget_set_size_request(downloadTitleLabel, 100, -1);
+    gtk_widget_set_size_request(downloadTitleLabel, 80, -1);
     gtk_widget_set_halign(downloadTitleLabel, GTK_ALIGN_START);
     downloadLabel_ = gtk_label_new("--");
     gtk_label_set_markup(GTK_LABEL(downloadLabel_), 
-        "<span size='large' weight='bold'>--</span>");
+        "<span size='large' weight='bold' color='#28B463'>--</span>");
     gtk_widget_set_halign(downloadLabel_, GTK_ALIGN_START);
+    gtk_box_pack_start(GTK_BOX(downloadBox), downloadIcon, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(downloadBox), downloadTitleLabel, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(downloadBox), downloadLabel_, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(resultsBox), downloadBox, FALSE, FALSE, 0);
     
-    // Upload speed
+    // Upload speed with icon
     GtkWidget* uploadBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+    GtkWidget* uploadIcon = gtk_label_new("⬆️");
+    gtk_widget_set_size_request(uploadIcon, 30, -1);
     GtkWidget* uploadTitleLabel = gtk_label_new("Upload:");
-    gtk_widget_set_size_request(uploadTitleLabel, 100, -1);
+    gtk_widget_set_size_request(uploadTitleLabel, 80, -1);
     gtk_widget_set_halign(uploadTitleLabel, GTK_ALIGN_START);
     uploadLabel_ = gtk_label_new("--");
     gtk_label_set_markup(GTK_LABEL(uploadLabel_), 
-        "<span size='large' weight='bold'>--</span>");
+        "<span size='large' weight='bold' color='#E67E22'>--</span>");
     gtk_widget_set_halign(uploadLabel_, GTK_ALIGN_START);
+    gtk_box_pack_start(GTK_BOX(uploadBox), uploadIcon, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(uploadBox), uploadTitleLabel, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(uploadBox), uploadLabel_, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(resultsBox), uploadBox, FALSE, FALSE, 0);
     
-    // Ping
+    // Ping with icon
     GtkWidget* pingBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+    GtkWidget* pingIcon = gtk_label_new("🏓");
+    gtk_widget_set_size_request(pingIcon, 30, -1);
     GtkWidget* pingTitleLabel = gtk_label_new("Ping:");
-    gtk_widget_set_size_request(pingTitleLabel, 100, -1);
+    gtk_widget_set_size_request(pingTitleLabel, 80, -1);
     gtk_widget_set_halign(pingTitleLabel, GTK_ALIGN_START);
     pingLabel_ = gtk_label_new("--");
     gtk_label_set_markup(GTK_LABEL(pingLabel_), 
-        "<span size='large' weight='bold'>--</span>");
+        "<span size='large' weight='bold' color='#9B59B6'>--</span>");
     gtk_widget_set_halign(pingLabel_, GTK_ALIGN_START);
+    gtk_box_pack_start(GTK_BOX(pingBox), pingIcon, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(pingBox), pingTitleLabel, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(pingBox), pingLabel_, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(resultsBox), pingBox, FALSE, FALSE, 0);
     
-    // Jitter
+    // Jitter with icon
     GtkWidget* jitterBox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
     GtkWidget* jitterTitleLabel = gtk_label_new("Jitter:");
     gtk_widget_set_size_request(jitterTitleLabel, 100, -1);
@@ -388,6 +407,7 @@ void SpeedTestWidget::runTestAsync(TestRunConfig config) {
                     return;
                 }
                 auto stageCopy = stage;
+                // Download test now reports 0.0-1.0, map to 35%-65% range
                 double adjusted = 0.35 + progress * 0.30;
                 dispatchToUi([stageCopy, adjusted, speed](SpeedTestWidget& widget) {
                     widget.updateProgress(stageCopy, adjusted, speed);
@@ -413,6 +433,7 @@ void SpeedTestWidget::runTestAsync(TestRunConfig config) {
                     return;
                 }
                 auto stageCopy = stage;
+                // Upload test now reports 0.0-1.0, map to 68%-98% range
                 double adjusted = 0.68 + progress * 0.30;
                 dispatchToUi([stageCopy, adjusted, speed](SpeedTestWidget& widget) {
                     widget.updateProgress(stageCopy, adjusted, speed);

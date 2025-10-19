@@ -40,6 +40,7 @@ void SpeedTestWorker::runTest() {
             double downloadSpeed = downloadTest_->run(server_.downloadUrl, 4, 10, 2,
                 [this](const std::string& stage, double progress, double speed) {
                     if (!stopped_) {
+                        // Download test now reports 0.0-1.0, map to 33%-66% range
                         emit progressUpdated(QString::fromStdString(stage), 
                                            0.33 + progress * 0.33, speed);
                     }
@@ -105,19 +106,29 @@ void SpeedTestWidgetQt::setupUI() {
     mainLayout->setContentsMargins(20, 20, 20, 20);
     mainLayout->setSpacing(15);
     
-    // Title
+    // Title with icon
+    QHBoxLayout* titleLayout = new QHBoxLayout();
+    QLabel* titleIcon = new QLabel("🚀");
+    titleIcon->setFixedSize(32, 32);
     QLabel* titleLabel = new QLabel("Internet Speed Test");
     QFont titleFont = titleLabel->font();
-    titleFont.setPointSize(16);
+    titleFont.setPointSize(18);
     titleFont.setBold(true);
     titleLabel->setFont(titleFont);
-    mainLayout->addWidget(titleLabel);
+    titleLabel->setStyleSheet("color: #2E86C1;");
+    titleLayout->addWidget(titleIcon);
+    titleLayout->addWidget(titleLabel);
+    titleLayout->addStretch();
+    mainLayout->addLayout(titleLayout);
     
-    // Server selection group
-    QGroupBox* serverGroup = new QGroupBox("Test Configuration");
+    // Server selection group with better styling
+    QGroupBox* serverGroup = new QGroupBox("📍 Test Configuration");
+    serverGroup->setStyleSheet("QGroupBox { font-weight: bold; color: #2E86C1; border: 2px solid #BDC3C7; border-radius: 5px; margin-top: 10px; }"
+                              "QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px; }");
     QFormLayout* serverLayout = new QFormLayout(serverGroup);
     
     serverCombo_ = new QComboBox();
+    serverCombo_->setMinimumWidth(300);
     for (const auto& server : servers_) {
         serverCombo_->addItem(QString::fromStdString(server.name));
     }
@@ -125,8 +136,10 @@ void SpeedTestWidgetQt::setupUI() {
     
     mainLayout->addWidget(serverGroup);
     
-    // Progress section
-    QGroupBox* progressGroup = new QGroupBox("Test Progress");
+    // Progress section with better styling
+    QGroupBox* progressGroup = new QGroupBox("⚡ Test Progress");
+    progressGroup->setStyleSheet("QGroupBox { font-weight: bold; color: #2E86C1; border: 2px solid #BDC3C7; border-radius: 5px; margin-top: 10px; }"
+                                "QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px; }");
     QVBoxLayout* progressLayout = new QVBoxLayout(progressGroup);
     
     progressBar_ = new QProgressBar();
@@ -134,57 +147,93 @@ void SpeedTestWidgetQt::setupUI() {
     progressBar_->setMaximum(100);
     progressBar_->setValue(0);
     progressBar_->setTextVisible(true);
+    progressBar_->setFixedHeight(25);
+    progressBar_->setStyleSheet("QProgressBar { border: 2px solid #BDC3C7; border-radius: 5px; text-align: center; font-weight: bold; }"
+                               "QProgressBar::chunk { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #4CAF50, stop:1 #45a049); }");
     progressLayout->addWidget(progressBar_);
     
     statusLabel_ = new QLabel("Ready to test");
     statusLabel_->setAlignment(Qt::AlignCenter);
+    statusLabel_->setStyleSheet("font-weight: bold; color: #666;");
     progressLayout->addWidget(statusLabel_);
     
     mainLayout->addWidget(progressGroup);
     
-    // Control buttons
+    // Control buttons with better styling
     QHBoxLayout* buttonLayout = new QHBoxLayout();
     buttonLayout->addStretch();
     
-    startButton_ = new QPushButton("Start Test");
-    startButton_->setMinimumSize(120, 40);
+    startButton_ = new QPushButton("▶️ Start Test");
+    startButton_->setMinimumSize(140, 45);
+    startButton_->setStyleSheet("QPushButton { background-color: #4CAF50; color: white; border: none; border-radius: 5px; font-weight: bold; font-size: 12px; }"
+                               "QPushButton:hover { background-color: #45a049; }"
+                               "QPushButton:pressed { background-color: #3d8b40; }");
     connect(startButton_, &QPushButton::clicked, this, &SpeedTestWidgetQt::onStartClicked);
     buttonLayout->addWidget(startButton_);
     
-    stopButton_ = new QPushButton("Stop Test");
-    stopButton_->setMinimumSize(120, 40);
+    stopButton_ = new QPushButton("⏹️ Stop Test");
+    stopButton_->setMinimumSize(140, 45);
     stopButton_->setEnabled(false);
+    stopButton_->setStyleSheet("QPushButton { background-color: #f44336; color: white; border: none; border-radius: 5px; font-weight: bold; font-size: 12px; }"
+                              "QPushButton:hover { background-color: #da190b; }"
+                              "QPushButton:pressed { background-color: #b71c1c; }"
+                              "QPushButton:disabled { background-color: #cccccc; color: #666666; }");
     connect(stopButton_, &QPushButton::clicked, this, &SpeedTestWidgetQt::onStopClicked);
     buttonLayout->addWidget(stopButton_);
     
     buttonLayout->addStretch();
     mainLayout->addLayout(buttonLayout);
     
-    // Results section
-    QGroupBox* resultsGroup = new QGroupBox("Test Results");
+    // Results section with icons and better styling
+    QGroupBox* resultsGroup = new QGroupBox("📊 Test Results");
+    resultsGroup->setStyleSheet("QGroupBox { font-weight: bold; color: #2E86C1; border: 2px solid #BDC3C7; border-radius: 5px; margin-top: 10px; }"
+                               "QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px; }");
     QFormLayout* resultsLayout = new QFormLayout(resultsGroup);
     resultsLayout->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
     
+    // Download result with icon
+    QHBoxLayout* downloadLayout = new QHBoxLayout();
+    QLabel* downloadIcon = new QLabel("⬇️");
+    downloadIcon->setFixedSize(24, 24);
     downloadLabel_ = new QLabel("--");
     QFont resultFont = downloadLabel_->font();
     resultFont.setPointSize(14);
     resultFont.setBold(true);
     downloadLabel_->setFont(resultFont);
-    downloadLabel_->setStyleSheet("color: #4CAF50;");
-    resultsLayout->addRow("Download:", downloadLabel_);
+    downloadLabel_->setStyleSheet("color: #28B463; background-color: #f8f9fa; padding: 5px; border-radius: 3px;");
+    downloadLayout->addWidget(downloadIcon);
+    downloadLayout->addWidget(downloadLabel_);
+    downloadLayout->addStretch();
+    resultsLayout->addRow("Download:", downloadLayout);
     
+    // Upload result with icon
+    QHBoxLayout* uploadLayout = new QHBoxLayout();
+    QLabel* uploadIcon = new QLabel("⬆️");
+    uploadIcon->setFixedSize(24, 24);
     uploadLabel_ = new QLabel("--");
     uploadLabel_->setFont(resultFont);
-    uploadLabel_->setStyleSheet("color: #2196F3;");
-    resultsLayout->addRow("Upload:", uploadLabel_);
+    uploadLabel_->setStyleSheet("color: #E67E22; background-color: #f8f9fa; padding: 5px; border-radius: 3px;");
+    uploadLayout->addWidget(uploadIcon);
+    uploadLayout->addWidget(uploadLabel_);
+    uploadLayout->addStretch();
+    resultsLayout->addRow("Upload:", uploadLayout);
     
+    // Ping result with icon
+    QHBoxLayout* pingLayout = new QHBoxLayout();
+    QLabel* pingIcon = new QLabel("🏓");
+    pingIcon->setFixedSize(24, 24);
     pingLabel_ = new QLabel("--");
     pingLabel_->setFont(resultFont);
-    pingLabel_->setStyleSheet("color: #FF9800;");
-    resultsLayout->addRow("Ping:", pingLabel_);
+    pingLabel_->setStyleSheet("color: #9B59B6; background-color: #f8f9fa; padding: 5px; border-radius: 3px;");
+    pingLayout->addWidget(pingIcon);
+    pingLayout->addWidget(pingLabel_);
+    pingLayout->addStretch();
+    resultsLayout->addRow("Ping:", pingLayout);
     
+    // Jitter result
     jitterLabel_ = new QLabel("--");
     jitterLabel_->setFont(resultFont);
+    jitterLabel_->setStyleSheet("color: #34495E; background-color: #f8f9fa; padding: 5px; border-radius: 3px;");
     resultsLayout->addRow("Jitter:", jitterLabel_);
     
     mainLayout->addWidget(resultsGroup);

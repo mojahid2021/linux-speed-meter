@@ -1,4 +1,7 @@
 #include "../include/speed_test.h"
+#include "../include/download_test.h"
+#include "../include/upload_test.h"
+#include "../include/ping_test.h"
 #include <curl/curl.h>
 #include <cmath>
 #include <algorithm>
@@ -46,18 +49,36 @@ SpeedTestResult SpeedTest::runCompleteTest(const TestServer& server, ProgressCal
 }
 
 double SpeedTest::testDownloadSpeed(const TestServer& server, ProgressCallback callback) {
-    // Implementation delegated to DownloadTest class
-    return 0.0;
+    try {
+        DownloadTest downloadTest;
+        return downloadTest.run(server.downloadUrl, parallelConnections_, 
+                               testDuration_, warmupTime_, callback);
+    } catch (const std::exception& e) {
+        std::cerr << "Download test failed: " << e.what() << std::endl;
+        return 0.0;
+    }
 }
 
 double SpeedTest::testUploadSpeed(const TestServer& server, ProgressCallback callback) {
-    // Implementation delegated to UploadTest class
-    return 0.0;
+    try {
+        UploadTest uploadTest;
+        return uploadTest.run(server.uploadUrl, parallelConnections_, 
+                             testDuration_, warmupTime_, callback);
+    } catch (const std::exception& e) {
+        std::cerr << "Upload test failed: " << e.what() << std::endl;
+        return 0.0;
+    }
 }
 
 double SpeedTest::testPing(const TestServer& server, int count) {
-    // Implementation delegated to PingTest class
-    return 0.0;
+    try {
+        PingTest pingTest;
+        PingResults results = pingTest.run(server.host, 80, count);
+        return results.avgMs;
+    } catch (const std::exception& e) {
+        std::cerr << "Ping test failed: " << e.what() << std::endl;
+        return 0.0;
+    }
 }
 
 double SpeedTest::calculateJitter(const std::vector<double>& pingResults) {
@@ -76,28 +97,34 @@ double SpeedTest::calculateJitter(const std::vector<double>& pingResults) {
 std::vector<TestServer> SpeedTest::getDefaultServers() {
     std::vector<TestServer> servers;
     
-    // Example servers - in production, these would be real speed test servers
-    // Using common fast download URLs for testing
+    // Working speed test servers with reliable URLs
     servers.push_back(TestServer(
-        "Cloudflare",
-        "speed.cloudflare.com",
-        "https://speed.cloudflare.com/__down?bytes=25000000",  // 25MB
-        "https://speed.cloudflare.com/__up"
+        "Tele2 (Sweden)",
+        "speedtest.tele2.net",
+        "http://speedtest.tele2.net/100MB.zip",                  // 100MB test file
+        "http://speedtest.tele2.net/upload.php"                  // Upload endpoint
     ));
     
     servers.push_back(TestServer(
-        "Fast.com (Netflix)",
-        "fast.com",
-        "https://api.fast.com/netflix/speedtest",
-        "https://api.fast.com/netflix/speedtest"
+        "CacheFly (Global CDN)",
+        "cachefly.cachefly.net",
+        "http://cachefly.cachefly.net/100mb.test",              // 100MB test file
+        "http://cachefly.cachefly.net/upload.php"               // Upload endpoint
     ));
     
-    // LibreSpeed compatible servers
     servers.push_back(TestServer(
-        "LibreSpeed Demo",
-        "librespeed.org",
-        "http://librespeed.org/garbage.php?ckSize=25",
-        "http://librespeed.org/empty.php"
+        "Linode (SpeedTest)",
+        "speedtest.linode.com",
+        "http://speedtest.linode.com/100MB-linode.bin",         // 100MB test file
+        "http://speedtest.linode.com/upload.php"                // Upload endpoint
+    ));
+    
+    // Fallback server with simple HTTP test
+    servers.push_back(TestServer(
+        "HTTP Test (Fallback)",
+        "httpbin.org",
+        "https://httpbin.org/stream/1000",                      // Streaming test
+        "https://httpbin.org/post"                              // POST endpoint
     ));
     
     return servers;

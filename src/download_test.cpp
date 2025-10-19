@@ -54,6 +54,9 @@ double DownloadTest::run(const std::string& url, int parallelConnections,
     auto testEnd = startTime + std::chrono::seconds(totalDuration);
     auto measurementStart = (effectiveWarmup == 0) ? startTime : warmupEnd;
     
+    // Add maximum timeout (2x the expected duration) to prevent hanging
+    auto maxTestEnd = startTime + std::chrono::seconds(totalDuration * 2);
+    
     // Start parallel download threads
     for (int i = 0; i < parallelConnections && running_; ++i) {
         threads_.emplace_back(&DownloadTest::downloadWorker, this, url, i);
@@ -63,8 +66,8 @@ double DownloadTest::run(const std::string& url, int parallelConnections,
     uint64_t bytesAtWarmupEnd = 0;
     bool warmupComplete = false;
     
-    while (running_ && std::chrono::steady_clock::now() < testEnd) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    while (running_ && std::chrono::steady_clock::now() < testEnd && std::chrono::steady_clock::now() < maxTestEnd) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));  // More frequent updates
         
         auto now = std::chrono::steady_clock::now();
         
@@ -75,20 +78,26 @@ double DownloadTest::run(const std::string& url, int parallelConnections,
             measurementStart = now;
         }
         
-        // Calculate current speed (after warmup)
-        if (warmupComplete) {
-            auto elapsed = std::chrono::duration<double>(now - measurementStart).count();
-            if (elapsed > 0) {
+        // Calculate progress and speed
+        auto elapsed = std::chrono::duration<double>(now - startTime).count();
+        double overallProgress = elapsed / totalDuration;
+        if (overallProgress > 1.0) overallProgress = 1.0;
+        
+        if (callback) {
+            if (!warmupComplete) {
+                // During warmup, show progress based on time
+                callback("Warming up...", overallProgress * 0.5, 0.0);
+            } else {
+                // After warmup, show download progress
+                auto measurementElapsed = std::chrono::duration<double>(now - measurementStart).count();
+                double measurementProgress = measurementElapsed / measurementWindow;
+                if (measurementProgress > 1.0) measurementProgress = 1.0;
+                
                 uint64_t measuredBytes = totalBytes_.load() - bytesAtWarmupEnd;
-                double mbps = calculateMbps(measuredBytes, elapsed);
+                double mbps = calculateMbps(measuredBytes, measurementElapsed);
                 currentSpeedMbps_ = mbps;
                 
-                if (callback) {
-                    double progress = elapsed / measurementWindow;
-                    if (progress < 0.0) progress = 0.0;
-                    if (progress > 1.0) progress = 1.0;
-                    callback("Downloading...", progress, mbps);
-                }
+                callback("Downloading...", 0.5 + measurementProgress * 0.5, mbps);
             }
         }
     }
@@ -139,7 +148,7 @@ void DownloadTest::downloadWorker(const std::string& url, int threadId) {
         });
     curl_easy_setopt(curl.get(), CURLOPT_WRITEDATA, &threadBytes);
     curl_easy_setopt(curl.get(), CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT, 30L);
+    curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT, 10L);  // Shorter timeout for speed testing
     curl_easy_setopt(curl.get(), CURLOPT_NOSIGNAL, 1L);
     curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYPEER, 0L);  // For speed testing, skip SSL verification
     curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYHOST, 0L);

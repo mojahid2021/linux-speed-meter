@@ -43,6 +43,10 @@ private:
     GtkLabel* ipLabel;
     GtkLabel* statusLabel;
 
+    // Progress bars for visual speed indication
+    GtkWidget* downloadProgress_;
+    GtkWidget* uploadProgress_;
+
     // Monthly statistics labels
     GtkLabel* monthlyDownloadLabel;
     GtkLabel* monthlyUploadLabel;
